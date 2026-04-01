@@ -1,0 +1,43 @@
+Package: stepssurvey
+Title: Analyse WHO STEPS Survey Data
+Version: 0.1.0
+Authors@R: c(
+    person("Abhijit", "Pakhare", email = "drpakhare@gmail.com",
+           role = c("aut", "cre")),
+    person("WHO STEPS R Pipeline Contributors", role = "ctb")
+  )
+Description: A complete analysis pipeline for the WHO STEPwise Approach to
+    NCD Risk Factor Surveillance (STEPS). Imports raw survey data (CSV,
+    Excel, Stata, SPSS), applies WHO-standard cleaning and recoding, sets
+    up complex survey designs, computes all standard NCD indicators
+    (tobacco, alcohol, diet, physical activity, anthropometry, blood
+    pressure, biochemical), and generates publication-ready tables,
+    visualisations, and Word/HTML reports (fact sheet, data book, country
+    report).
+License: MIT + file LICENSE
+URL: https://github.com/drpakhare/stepssurvey
+BugReports: https://github.com/drpakhare/stepssurvey/issues
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.1.0)
+Imports:
+    dplyr,
+    flextable,
+    ggplot2,
+    glue,
+    haven,
+    janitor,
+    patchwork,
+    readr,
+    readxl,
+    rmarkdown,
+    survey,
+    tools
+Suggests:
+    knitr,
+    testthat (>= 3.0.0),
+    withr
+Config/testthat/edition: 3

@@ -1,0 +1,115 @@
+---
+title: "NCD Risk Factor Survey Report"
+subtitle: "`r params$config$country_name` | `r params$config$survey_year`"
+output:
+  word_document: default
+  html_document:
+    theme: flatly
+    toc: true
+params:
+  config: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.width = 10)
+library(flextable); library(ggplot2); library(glue); library(patchwork)
+library(stepssurvey)
+
+cfg            <- params$config
+indicators     <- readRDS(file.path(cfg$data_path, "..", "processed", "indicators.rds"))
+key_indicators <- readRDS(file.path(cfg$data_path, "..", "processed", "key_indicators.rds"))
+tables         <- readRDS(file.path(cfg$data_path, "..", "processed", "tables.rds"))
+plots          <- readRDS(file.path(cfg$data_path, "..", "processed", "plots.rds"))
+
+# Helper to pull a single estimate
+get_est <- function(ind, domain, key) {
+  val <- ind[[domain]][[key]]
+  if (is.null(val)) return("N/A")
+  paste0(round(val$estimate[1], 1), "%")
+}
+```
+
+# Executive Summary
+
+This report presents the findings of the WHO STEPwise Approach to NCD Risk Factor Surveillance (STEPS) survey conducted in **`r cfg$country_name`** in **`r cfg$survey_year`**. The survey collected data on key non-communicable disease (NCD) risk factors among adults aged `r cfg$age_min`–`r cfg$age_max` years.
+
+## Key Findings
+
+```{r key-findings}
+key_indicators |>
+  mutate(Result = paste0(round(estimate, 1), "% (95% CI: ", round(lower, 1), "–", round(upper, 1), "%)")) |>
+  select(Domain = domain, Indicator = indicator, Result) |>
+  flextable() |>
+  theme_vanilla() |>
+  bold(part = "header") |>
+  bg(part = "header", bg = "#00427A") |>
+  color(part = "header", color = "white") |>
+  merge_v(j = "Domain") |>
+  autofit()
+```
+
+---
+
+# Tobacco Use
+
+Current tobacco use was estimated at **`r get_est(indicators, "tobacco", "current_tobacco_total")`** among the adult population. Tobacco use is a leading risk factor for cardiovascular disease, cancer, and chronic respiratory disease.
+
+```{r tobacco-chart, fig.height=5}
+if (!is.null(plots$tobacco_by_sex)) plots$tobacco_by_sex
+```
+
+---
+
+# Physical Activity
+
+Insufficient physical activity (less than 600 MET-minutes/week) was found in **`r get_est(indicators, "diet_pa", "insufficient_pa_total")`** of the population. Regular physical activity reduces the risk of cardiovascular disease, diabetes, and some cancers.
+
+---
+
+# Overweight and Obesity
+
+The prevalence of overweight or obesity (BMI ≥25 kg/m²) was **`r get_est(indicators, "anthropometry", "overweight_obese_total")`**.
+
+```{r obesity-age, fig.height=5}
+if (!is.null(plots$obesity_by_age)) plots$obesity_by_age
+```
+
+---
+
+# Blood Pressure
+
+Raised blood pressure (≥140/90 mmHg or on antihypertensive medication) was found in **`r get_est(indicators, "blood_pressure", "raised_bp_total")`** of adults.
+
+```{r bp-age, fig.height=5}
+if (!is.null(plots$bp_by_age)) plots$bp_by_age
+```
+
+---
+
+# Blood Glucose and Cholesterol
+
+Raised fasting blood glucose (≥7.0 mmol/L or on diabetes medication) was found in **`r get_est(indicators, "biochemical", "raised_glucose_total")`** of adults. Raised total cholesterol (≥5.0 mmol/L) was found in **`r get_est(indicators, "biochemical", "raised_chol_total")`**.
+
+---
+
+# Recommendations
+
+Based on the survey findings, the following public health priorities are recommended:
+
+1. **Strengthen tobacco control** policies including taxation, plain packaging, and cessation support
+2. **Promote physical activity** through community programs and urban planning
+3. **Improve dietary quality** by increasing access to fruits and vegetables
+4. **Scale up screening and treatment** for hypertension and diabetes
+5. **Enhance surveillance capacity** with regular repeat surveys
+
+---
+
+# Methodology
+
+This survey followed the WHO STEPwise approach to NCD risk factor surveillance. Data were collected using a multistage cluster sampling design. Survey-weighted estimates were produced using the `survey` package in R to account for the complex sampling design. Confidence intervals were calculated at the 95% level.
+
+---
+
+*Report generated: `r Sys.Date()`*
+*Analysis: WHO STEPS R Pipeline*
+*Country: `r cfg$country_name` | Survey year: `r cfg$survey_year`*

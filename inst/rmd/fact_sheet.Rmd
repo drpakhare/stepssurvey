@@ -1,0 +1,66 @@
+---
+title: "STEPS Survey Fact Sheet"
+output:
+  word_document: default
+  html_document:
+    theme: flatly
+params:
+  config: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.width = 10)
+library(flextable); library(ggplot2); library(glue); library(patchwork)
+library(stepssurvey)
+
+cfg           <- params$config
+indicators    <- readRDS(file.path(cfg$data_path, "..", "processed", "indicators.rds"))
+key_indicators <- readRDS(file.path(cfg$data_path, "..", "processed", "key_indicators.rds"))
+plots         <- readRDS(file.path(cfg$data_path, "..", "processed", "plots.rds"))
+```
+
+---
+
+**`r cfg$country_name` | WHO STEPS NCD Risk Factor Survey | `r cfg$survey_year`**
+Ages `r cfg$age_min`–`r cfg$age_max` years
+
+---
+
+## Key Risk Factor Prevalence
+
+```{r overview-chart, fig.height=7}
+plots$overview
+```
+
+---
+
+## Risk Factor Summary Table
+
+```{r key-table}
+key_indicators |>
+  mutate(
+    Prevalence = paste0(round(estimate, 1), "% (", round(lower, 1), "–", round(upper, 1), ")")
+  ) |>
+  select(Domain = domain, `Risk Factor` = indicator, `Prevalence (95% CI)` = Prevalence) |>
+  flextable() |>
+  theme_vanilla() |>
+  bold(part = "header") |>
+  bg(part = "header", bg = "#00427A") |>
+  color(part = "header", color = "white") |>
+  merge_v(j = "Domain") |>
+  valign(j = "Domain", valign = "top") |>
+  autofit()
+```
+
+---
+
+## By Sex
+
+```{r sex-dashboard, fig.height=8}
+if (!is.null(plots$sex_dashboard)) plots$sex_dashboard
+```
+
+---
+
+*This fact sheet was generated using the WHO STEPS R analysis pipeline.*
+*Survey year: `r cfg$survey_year` | Country: `r cfg$country_name`*
