@@ -2,7 +2,7 @@
 % Please edit documentation in R/survey_design.R
 \name{setup_survey_design}
 \alias{setup_survey_design}
-\title{Set up a complex survey design for STEPS data}
+\title{Set up survey designs for STEPS data (one per Step)}
 \usage{
 setup_survey_design(data)
 }
@@ -10,16 +10,20 @@ setup_survey_design(data)
 \item{data}{A data frame (typically from \code{\link[=clean_steps_data]{clean_steps_data()}}).}
 }
 \value{
-A survey design object (from the \code{survey} package) suitable
-for weighted estimation with \code{\link[=svyprop]{svyprop()}} and \code{\link[=svymn]{svymn()}}.
+A list of class \code{"steps_designs"} with three
+\link[survey:svydesign]{survey::svydesign} objects (step1, step2, step3).
 }
 \description{
-Creates a survey design object that accounts for sampling weights,
-stratification, and clustering. Automatically detects which design
-elements are present and adapts accordingly.
+Creates up to three survey design objects — one per WHO STEPS Step —
+each using the appropriate step-specific weight column
+(\code{wt_step1}, \code{wt_step2}, \code{wt_step3}).
 }
 \details{
-The function handles five design cases:
+The returned object is a list of class \code{"steps_designs"} with elements
+\verb{$step1}, \verb{$step2}, \verb{$step3}.  For backward compatibility it can also
+be used directly as a single design (it delegates to \verb{$step1}).
+
+The function handles five design cases per step:
 \enumerate{
 \item Full complex design: weights + strata + clusters
 \item Weights + clusters, no strata
@@ -28,5 +32,6 @@ The function handles five design cases:
 \item Unweighted (simple random sampling)
 }
 
-Extreme weights are trimmed to the \code{[0.1, 10]} range if weights are present.
+Extreme weights are trimmed using median-based relative bounds
+\code{[median/10, median*10]} if meaningful variation exists.
 }

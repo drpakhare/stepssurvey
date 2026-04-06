@@ -1,0 +1,301 @@
+---
+title: "Interactive Analysis with the Shiny App"
+author: "Abhijit Pakhare"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Interactive Analysis with the Shiny App}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  eval     = FALSE
+)
+```
+
+## Overview
+
+The `stepssurvey` package includes a Shiny web application that provides
+a guided, point-and-click interface for analysing WHO STEPS survey data.
+It calls the same functions available in the R API, so results are
+identical whether you use the app or write scripts.
+
+The app is designed for public health professionals who may not write R
+code but need to produce standardised STEPS outputs.
+
+### Launching the app
+
+```{r launch}
+library(stepssurvey)
+run_app()
+```
+
+This opens a browser window with a six-tab workflow.  Each tab
+corresponds to one stage of the pipeline: **Data & Settings**,
+**Clean**, **Design**, **Indicators**, **Visualise**, and **Reports**.
+
+Work through the tabs from left to right.  Each tab activates once the
+previous step has completed successfully.
+
+
+## Tab 1: Data & Settings
+
+This is where you load your STEPS data.
+
+### Uploading a data file
+
+Click **Browse** and select your file.  Supported formats are CSV
+(`.csv`), Excel (`.xlsx`), Stata (`.dta`), and SPSS (`.sav`).  SPSS is
+the most common format for STEPS data exported from Epi Info.
+
+After upload, you will see:
+
+- **Raw data preview** -- a scrollable table showing the first 100 rows
+  so you can verify the file loaded correctly.
+- **Detected columns** -- a table showing which STEPS variables were
+  auto-detected and which column in your data they map to.
+
+### Using demo data
+
+If you do not have a STEPS data file, click **Use demo data** to load a
+realistic simulated dataset with 3,000 observations.  This is useful for
+exploring the app and understanding the outputs before running your own
+data.
+
+### Column overrides
+
+The auto-detection system recognises standard WHO STEPS variable codes
+from both instrument v3.1 and v3.2.  However, some country datasets use
+non-standard names.  If a variable is marked "not found", use the
+dropdown menus under **Column overrides** to manually select the correct
+column from your data.
+
+Key variables to check:
+
+| Variable | What it is | Why it matters |
+|----------|-----------|----------------|
+| `age` | Respondent age in years | Required for age group classification |
+| `sex` | Respondent sex | Required for sex-stratified tables |
+| `weight_step1` | Sampling weight (Step 1) | Needed for correct weighted estimates |
+| `psu` | Primary sampling unit / cluster | Needed for correct standard errors |
+| `tobacco_current` | Current tobacco smoking | Core Step 1 indicator |
+| `sbp1` | First SBP reading | Core Step 2 indicator |
+| `fasting_glucose` | Fasting blood glucose | Core Step 3 indicator |
+
+### Survey settings
+
+Set the country name, survey year, and target age range (default 18--69
+years) in the settings panel.  These appear in the report headers and
+determine which observations are included in the analysis.
+
+
+## Tab 2: Clean
+
+Click the **Clean** button to process the raw data.  The cleaning step:
+
+- Restricts the sample to the specified age range
+- Creates WHO standard age groups (18--24, 25--34, ... 65+)
+- Harmonises sex coding to Male/Female
+- Derives all binary indicators (raised BP, overweight, etc.)
+- Computes BMI, mean blood pressure, MET-minutes/week, and other
+  continuous measures
+
+After cleaning, you will see:
+
+- **Row counts** -- how many observations were retained versus excluded
+- **Clean data preview** -- a table of the processed data with all
+  derived variables
+
+If cleaning fails, check the console output (or R Studio console) for
+messages about which variables were missing or had unexpected values.
+
+
+## Tab 3: Design
+
+This tab creates the complex survey design object that ensures all
+estimates account for the sampling weights, stratification, and
+clustering used in STEPS surveys.
+
+The app automatically detects the survey design complexity:
+
+- **Full complex design** if weight, stratum, and PSU columns are present
+- **Weights only** if no stratification or clustering information is found
+- **Unweighted** if no weight column is present (not recommended)
+
+You will see a summary confirming which design was created.  Extreme
+weights are automatically trimmed to prevent individual observations from
+dominating the estimates.
+
+
+## Tab 4: Indicators
+
+Click **Compute indicators** to calculate all weighted prevalence
+estimates and means across six domains:
+
+- Tobacco use (current, daily, smokeless, second-hand exposure)
+- Alcohol consumption (current, heavy episodic, mean drinks)
+- Diet and Physical Activity (fruit/vegetable intake, MET-minutes)
+- Anthropometry (BMI, waist circumference, overweight/obesity)
+- Blood Pressure (mean SBP/DBP, raised BP, treatment cascade)
+- Biochemical (glucose, cholesterol, HDL, triglycerides)
+
+After computation, you will see:
+
+- **Value boxes** showing the number of indicators computed and key
+  headline figures
+- **Key indicators table** -- a summary table of all headline
+  prevalences with 95% confidence intervals, downloadable as CSV
+
+
+## Tab 5: Visualise
+
+This tab displays pre-built charts.  All plots use the WHO STEPS colour
+palette and `theme_steps()` styling.
+
+### Available charts
+
+- **Overview** -- horizontal bar chart of all key indicators with 95% CIs,
+  sorted by prevalence
+- **By sex** -- grouped bar charts comparing Men vs Women for tobacco,
+  blood pressure, obesity, and glucose
+- **By age** -- line charts with confidence bands showing how blood
+  pressure and obesity vary across age groups
+- **Sex dashboard** -- a combined 2×2 panel of the most important
+  sex-stratified indicators
+
+If a particular chart is not available (because the underlying data
+was missing), a "not available" message is shown instead of an error.
+
+
+## Tab 6: Reports
+
+This is the final step.  Click **Generate report** to produce both
+reports.
+
+### What happens when you click Generate
+
+The app runs a pipeline that:
+
+1. Re-cleans the data and rebuilds the survey design
+2. Computes all indicators and builds summary tables
+3. Computes the full WHO table registry (~60 detailed 3-panel tables)
+4. Generates plots
+5. Renders both Word documents
+
+A status message keeps you informed of progress.  The full process
+typically takes 30--90 seconds depending on sample size.
+
+### Two reports
+
+| Report | Button | Contents |
+|--------|--------|----------|
+| **Summary Report** | Download Summary Report | Executive summary, narrative by domain, embedded charts, recommendations, methodology |
+| **Detailed Data Book** | Download Data Book | Complete WHO 3-panel tables (Men \| Women \| Both Sexes) by age group, organised by STEPS step |
+
+### Summary Report
+
+The country report includes:
+
+- **Key Findings table** listing all headline indicators with 95% CIs
+- **Domain sections** for Tobacco, Physical Activity, Obesity, Blood
+  Pressure, Blood Glucose, and Cholesterol -- each with an inline
+  prevalence estimate and an embedded chart
+- **Recommendations** aligned with WHO best-buy interventions
+- **Methodology** section describing the survey design and analysis
+
+### Detailed Data Book
+
+The data book follows the WHO STEPS standard layout with tables organised
+by survey step:
+
+- **Step 1: Behavioural** -- Tobacco (smoking status, smokeless, quit
+  attempts, second-hand exposure), Alcohol (drinking patterns, heavy
+  episodic), Diet (fruit/vegetable, salt), Physical Activity (total
+  minutes, domain breakdown, insufficient PA)
+- **Step 1.5: Health History** -- BP/glucose/cholesterol screening and
+  diagnosis cascades, CVD history, lifestyle advice
+- **Step 2: Physical Measurements** -- Mean BP, raised BP, treatment
+  cascade, BMI classifications, waist/hip measurements
+- **Step 3: Biochemical** -- Fasting glucose (impaired + raised),
+  treatment cascade, total cholesterol, HDL, triglycerides
+- **Combined Risk Factors** -- summary of 0, 1--2, and 3--5 concurrent
+  risk factors
+
+Every table uses the 3-panel format:
+
+```
+Age Group | Men          | Women        | Both Sexes
+18-24     | 4.3% (2-6.5)| 0% (0-0)     | 1.8% (0.8-2.8)
+25-34     | ...          | ...          | ...
+...
+18-69     | ...          | ...          | ...
+```
+
+### Additional downloads
+
+- **Download tables & plots** -- a ZIP file containing all pre-computed
+  RDS files (indicators, tables, plots) for further analysis in R
+
+
+## Tips and troubleshooting
+
+### The app shows an error on upload
+
+If you see `dim<-.haven_labelled() not supported`, this was a known issue
+with SPSS files that has been fixed.  Make sure you are running the latest
+version of the package (`devtools::load_all(".")` or reinstall from
+GitHub).
+
+### Charts don't display or show "figure margins too large"
+
+This happens when the RStudio Viewer pane is too narrow.  Open the app
+in a full browser window instead: after `run_app()`, click "Open in
+Browser" in the Viewer toolbar.
+
+### Physical Activity shows "not available"
+
+The Summary Report derives the insufficient PA indicator from
+MET-minutes/week.  If your dataset has raw GPAQ items (P1--P16) but no
+pre-computed `met_total`, the package now computes MET-minutes/week
+automatically using WHO MET multipliers (8 for vigorous, 4 for
+moderate/transport activities).  Ensure your GPAQ columns are correctly
+mapped in Tab 1.
+
+### Some tables are empty in the Data Book
+
+Tables are only produced when the required variables are present in the
+data.  For example, CVD risk tables require both clinical measurements
+and a risk scoring algorithm.  Missing tables show "No data available
+for this section."
+
+### Can I customise the report templates?
+
+Yes.  The R Markdown templates are located in `inst/rmd/` within the
+package source:
+
+- `country_report.Rmd` -- Summary Report
+- `data_book.Rmd` -- Detailed Data Book
+- `fact_sheet.Rmd` -- Fact Sheet
+
+Copy the template you want to modify, edit it, and pass the path via the
+config object.
+
+
+## Comparison: Shiny app vs R scripting
+
+| Feature | Shiny App | R Scripts |
+|---------|-----------|-----------|
+| Audience | Non-coders, quick analysis | R users, reproducible workflows |
+| Column mapping | Interactive dropdowns | `detect_steps_columns()` + manual overrides |
+| Customisation | Limited to built-in options | Full control over every step |
+| Batch processing | One dataset at a time | Loop over multiple datasets |
+| Reproducibility | Manual (same clicks each time) | Full script = full reproducibility |
+| Output | Word reports via browser | Word, HTML, PDF, or custom formats |
+
+For routine country-level STEPS analysis, the Shiny app is the fastest
+path.  For multi-country comparisons, methodological research, or custom
+indicators, use the R API documented in `vignette("stepssurvey-guide")`.

@@ -13,13 +13,16 @@ params:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.width = 10)
 library(flextable); library(ggplot2); library(glue); library(patchwork)
-library(stepssurvey)
+library(dplyr)
 
-cfg            <- params$config
-indicators     <- readRDS(file.path(cfg$data_path, "..", "processed", "indicators.rds"))
-key_indicators <- readRDS(file.path(cfg$data_path, "..", "processed", "key_indicators.rds"))
-tables         <- readRDS(file.path(cfg$data_path, "..", "processed", "tables.rds"))
-plots          <- readRDS(file.path(cfg$data_path, "..", "processed", "plots.rds"))
+cfg <- params$config
+
+# Read pre-computed data from the data directory passed via config
+data_dir <- cfg$data_dir
+indicators     <- readRDS(file.path(data_dir, "indicators.rds"))
+key_indicators <- readRDS(file.path(data_dir, "key_indicators.rds"))
+tables         <- readRDS(file.path(data_dir, "tables.rds"))
+plots          <- readRDS(file.path(data_dir, "plots.rds"))
 
 # Helper to pull a single estimate
 get_est <- function(ind, domain, key) {
@@ -52,7 +55,14 @@ key_indicators |>
 
 # Tobacco Use
 
-Current tobacco use was estimated at **`r get_est(indicators, "tobacco", "current_tobacco_total")`** among the adult population. Tobacco use is a leading risk factor for cardiovascular disease, cancer, and chronic respiratory disease.
+```{r tobacco-headline, include=FALSE}
+# Prefer combined (smoking + smokeless) if available; fall back to smoking only
+tob_est <- indicators$tobacco[["current_tobacco_any_total"]]
+if (is.null(tob_est)) tob_est <- indicators$tobacco[["current_tobacco_total"]]
+tob_label <- if (!is.null(tob_est)) paste0(round(tob_est$estimate[1], 1), "%") else "N/A"
+```
+
+Current tobacco use (smoking or smokeless) was estimated at **`r tob_label`** among the adult population. Tobacco use is a leading risk factor for cardiovascular disease, cancer, and chronic respiratory disease.
 
 ```{r tobacco-chart, fig.height=5}
 if (!is.null(plots$tobacco_by_sex)) plots$tobacco_by_sex
@@ -62,7 +72,16 @@ if (!is.null(plots$tobacco_by_sex)) plots$tobacco_by_sex
 
 # Physical Activity
 
-Insufficient physical activity (less than 600 MET-minutes/week) was found in **`r get_est(indicators, "diet_pa", "insufficient_pa_total")`** of the population. Regular physical activity reduces the risk of cardiovascular disease, diabetes, and some cancers.
+```{r pa-headline, include=FALSE}
+pa_est <- get_est(indicators, "diet_pa", "insufficient_pa_total")
+pa_text <- if (pa_est == "N/A") {
+  "Data on physical activity were not available for this survey."
+} else {
+  paste0("Insufficient physical activity (less than 600 MET-minutes/week) was found in **", pa_est, "** of the population.")
+}
+```
+
+`r pa_text` Regular physical activity reduces the risk of cardiovascular disease, diabetes, and some cancers.
 
 ---
 

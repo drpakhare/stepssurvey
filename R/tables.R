@@ -29,8 +29,15 @@
 build_steps_tables <- function(indicators) {
   tables <- list()
 
+  # Prefer current_tobacco_any (smoking + smokeless) as headline tobacco table
+  tob_var <- if (!is.null(indicators$tobacco[["current_tobacco_any_total"]])) {
+    "current_tobacco_any"
+  } else {
+    "current_tobacco"
+  }
   tables$current_tobacco <- build_table_if_available(
-    indicators$tobacco, "current_tobacco_total", "current_tobacco_by_sex", "current_tobacco_by_age",
+    indicators$tobacco,
+    paste0(tob_var, "_total"), paste0(tob_var, "_by_sex"), paste0(tob_var, "_by_age"),
     "Table 1. Current tobacco use (%)"
   )
   tables$current_alcohol <- build_table_if_available(

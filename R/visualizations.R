@@ -43,10 +43,16 @@ build_steps_plots <- function(indicators, key_indicators, country_name, survey_y
   config <- list(country_name = country_name, survey_year = survey_year)
 
   # - 1. Key indicators overview (horizontal bar chart)
-  plots$overview <- key_indicators |>
+  # Wrap long indicator labels so they fit in smaller plot areas
+  overview_df <- key_indicators |>
     dplyr::arrange(estimate) |>
-    dplyr::mutate(indicator = factor(indicator, levels = indicator)) |>
-    ggplot2::ggplot(ggplot2::aes(x = estimate, y = indicator, fill = domain)) +
+    dplyr::mutate(
+      indicator = vapply(indicator, function(x) paste(strwrap(x, width = 30), collapse = "\n"), character(1)),
+      indicator = factor(indicator, levels = indicator)
+    )
+
+  plots$overview <- ggplot2::ggplot(overview_df,
+      ggplot2::aes(x = estimate, y = indicator, fill = domain)) +
     ggplot2::geom_col(width = 0.6, alpha = 0.9) +
     ggplot2::geom_errorbarh(ggplot2::aes(xmin = lower, xmax = upper), height = 0.25, color = "grey40") +
     ggplot2::geom_text(ggplot2::aes(label = paste0(round(estimate, 1), "%")),
@@ -61,11 +67,17 @@ build_steps_plots <- function(indicators, key_indicators, country_name, survey_y
       caption  = "Source: WHO STEPS Survey"
     ) +
     theme_steps +
-    ggplot2::theme(legend.position = "right")
+    ggplot2::theme(
+      legend.position = "right",
+      plot.margin = ggplot2::margin(5, 10, 5, 5)
+    )
 
   # - 2. By-sex comparison (grouped bar chart)
+  # Prefer current_tobacco_any (smoking + smokeless) if available
+  tob_by_sex <- indicators$tobacco[["current_tobacco_any_by_sex"]]
+  if (is.null(tob_by_sex)) tob_by_sex <- indicators$tobacco[["current_tobacco_by_sex"]]
   plots$tobacco_by_sex <- make_sex_chart(
-    indicators$tobacco$current_tobacco_by_sex,
+    tob_by_sex,
     "Current tobacco use by sex", "current_tobacco",
     steps_colors, theme_steps
   )

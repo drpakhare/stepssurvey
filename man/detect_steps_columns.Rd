@@ -14,5 +14,24 @@ A named list of detected column names (or \code{NULL} for missing).
 }
 \description{
 Scans a data frame for standard WHO STEPS variable names across
-versions 3.1 and 3.2.
+versions 3.1 and 3.2.  Aliases are listed in priority order: the
+first match wins, so put the most specific / unambiguous name first.
+}
+\details{
+WHO STEPS reorganised variable codes between v3.1 and v3.2:
+
+\strong{v3.1 / Epi Info codes} (still common in many country datasets):
+B1-B6 = blood-pressure readings, B7 = BP meds,
+C1 = fasting glucose, C5 = DM meds, C6 = total cholesterol, C10 = chol meds,
+M1 = height, M2 = weight, M3 = waist.
+
+\strong{v3.2 instrument codes}:
+M4a/M5a/M6a = SBP readings, M4b/M5b/M6b = DBP readings, M7 = BP meds,
+M11 = height, M12 = weight, M14 = waist, M15 = hip,
+B5 = fasting glucose, B6 = DM meds, B8 = total cholesterol, B9 = chol meds,
+B16 = triglycerides, B17 = HDL cholesterol,
+C1 = sex, C3 = age.
+
+The function includes aliases for both versions so datasets from
+either instrument version are detected automatically.
 }

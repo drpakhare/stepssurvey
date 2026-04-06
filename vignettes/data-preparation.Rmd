@@ -1,0 +1,387 @@
+---
+title: "Preparing STEPS Data for Analysis"
+author: "Abhijit Pakhare"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Preparing STEPS Data for Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  eval     = FALSE
+)
+```
+
+## Introduction
+
+This guide helps you prepare your WHO STEPS survey data file for use
+with the `stepssurvey` package.  It covers the variables the package
+expects, how auto-detection works, common data quality issues, and how
+to resolve mismatches between your data and the package expectations.
+
+The package is designed to work with STEPS data from any country,
+regardless of instrument version (v3.1 or v3.2) or data management
+system (Epi Info, SPSS, Stata, Excel).
+
+
+## Supported file formats
+
+| Format | Extension | Typical source | Reader used |
+|--------|-----------|----------------|-------------|
+| SPSS | `.sav` | WHO STEPS data entry / Epi Info export | `haven::read_spss()` |
+| Stata | `.dta` | WHO analysis template | `haven::read_dta()` |
+| Excel | `.xlsx` | Custom data entry | `readxl::read_excel()` |
+| CSV | `.csv` | Any spreadsheet export | `readr::read_csv()` |
+
+**Recommendation**: Use the `.sav` file directly as exported from your
+data management system.  The package preserves SPSS variable labels
+during column detection (to disambiguate codes like A1 that mean
+different things across versions) and then strips them before analysis
+to avoid compatibility issues.
+
+
+## Minimum required variables
+
+At a minimum, the package needs **age** and **sex** to produce any
+output.  Beyond that, each additional variable you provide enables more
+indicators and tables.
+
+### Essential (required)
+
+| Variable | STEPS codes | Description |
+|----------|-------------|-------------|
+| Age | `C3` (v3.2), `age`, `c1` (v3.1) | Respondent age in completed years |
+| Sex | `C1` (v3.2), `sex`, `gender`, `c2` (v3.1) | Male/Female coding (1/2, M/F, or text) |
+
+### Strongly recommended
+
+| Variable | STEPS codes | Description |
+|----------|-------------|-------------|
+| Sampling weight (Step 1) | `WStep1`, `wt_final`, `sampleweight` | Probability weight for behavioural module |
+| Sampling weight (Step 2) | `WStep2` | Weight for physical measurements |
+| Sampling weight (Step 3) | `WStep3` | Weight for biochemical measurements |
+| PSU / Cluster | `psu`, `cluster`, `I1`, `ea_id` | Primary sampling unit identifier |
+| Stratum | `stratum`, `strata`, `district`, `region` | Stratification variable |
+
+If only one weight column is present, it is used for all three steps.
+If no weight is found, the package assumes equal weights (simple random
+sample).
+
+### Step 1: Behavioural risk factors
+
+**Tobacco:**
+
+| Variable | v3.1 code | v3.2 code | Description |
+|----------|-----------|-----------|-------------|
+| Current smoker | T1 | T1 | Currently smoke tobacco (yes/no) |
+| Daily smoker | T2 | T2 | Smoke daily (yes/no) |
+| Age started | T3 | T3 | Age of smoking initiation |
+| Cigarettes/day | T5a | T5a | Manufactured cigarettes per day |
+| Quit attempt | T6 | T6 | Tried to quit in past 12 months |
+| Past smoker | T8 | T8 | Ever smoked in the past |
+| Smokeless tobacco | T12/T15 | T12 | Current smokeless use |
+| Second-hand (home) | T17 | T17 | Exposure to smoke at home |
+| Second-hand (work) | T18 | T18 | Exposure to smoke at workplace |
+
+**Alcohol:**
+
+| Variable | v3.1 code | v3.2 code | Description |
+|----------|-----------|-----------|-------------|
+| Ever consumed | -- | A1 | Lifetime alcohol consumption |
+| Past 12 months | A2/A4 | A2 | Consumed in past year |
+| Current (30 days) | A1 | A5 | Consumed in past 30 days |
+| Occasions (30 days) | A6 | A6 | Number of drinking occasions |
+| Drinks per occasion | A7 | A7 | Typical number of drinks |
+| Heavy episodic | -- | A9 | Times with 6+ drinks (30 days) |
+
+**Note on A1/A5 ambiguity**: In v3.1, `A1` means "current drinker (past
+30 days)".  In v3.2, `A1` means "ever consumed alcohol" and `A5` is
+"past 30 days".  The package uses SPSS variable labels to disambiguate
+when the column code alone is ambiguous.  This is one reason why `.sav`
+files (which carry labels) work better than plain CSV.
+
+**Diet:**
+
+| Variable | v3.1 code | v3.2 code | Description |
+|----------|-----------|-----------|-------------|
+| Fruit days/week | D1 | D1 | Days eating fruit in typical week |
+| Fruit servings/day | D2 | D2 | Servings of fruit on those days |
+| Vegetable days/week | D3 | D3 | Days eating vegetables |
+| Vegetable servings/day | D4 | D4 | Servings of vegetables on those days |
+| Salt at table | D5 | D5 | Frequency of adding salt |
+| Processed salt food | D7 | D7 | Frequency of processed salty food |
+
+**Physical Activity (GPAQ):**
+
+| Variable | v3.2 code | Description |
+|----------|-----------|-------------|
+| Vigorous work (y/n) | P1 | Does vigorous work activity |
+| Vigorous work days | P2 | Days per week |
+| Vigorous work hours | P3a | Hours per day |
+| Vigorous work minutes | P3b | Minutes per day |
+| Moderate work (y/n) | P4 | Does moderate work activity |
+| Moderate work days | P5 | Days per week |
+| Moderate work hours | P6a | Hours per day |
+| Moderate work minutes | P6b | Minutes per day |
+| Transport (y/n) | P7 | Walks or cycles for transport |
+| Transport days | P8 | Days per week |
+| Transport hours | P9a | Hours per day |
+| Transport minutes | P9b | Minutes per day |
+| Vigorous recreation (y/n) | P10 | Does vigorous recreational activity |
+| Vigorous recreation days | P11 | Days per week |
+| Vigorous recreation hours | P12a | Hours per day |
+| Vigorous recreation minutes | P12b | Minutes per day |
+| Moderate recreation (y/n) | P13 | Does moderate recreational activity |
+| Moderate recreation days | P14 | Days per week |
+| Moderate recreation hours | P15a | Hours per day |
+| Moderate recreation minutes | P15b | Minutes per day |
+| Sedentary hours | P16a | Sitting time, hours per day |
+| Sedentary minutes | P16b | Sitting time, minutes per day |
+
+The package computes MET-minutes/week from these raw items using WHO
+MET multipliers: vigorous activities × 8 MET, moderate and transport
+activities × 4 MET.  The `insufficient_pa` indicator (< 600
+MET-minutes/week) is then derived automatically.
+
+If your dataset already has a pre-computed `met_total` variable, the
+package uses it directly instead of calculating from raw items.
+
+### Step 2: Physical measurements
+
+| Variable | v3.1 code | v3.2 code | Description |
+|----------|-----------|-----------|-------------|
+| Height (cm) | M1 | M11 | Standing height |
+| Weight (kg) | M2 | M12 | Body weight |
+| Waist (cm) | M3 | M14 | Waist circumference |
+| Hip (cm) | -- | M15 | Hip circumference |
+| SBP reading 1 | B1 | M4a | First systolic BP |
+| SBP reading 2 | B3 | M5a | Second systolic BP |
+| SBP reading 3 | B5 | M6a | Third systolic BP |
+| DBP reading 1 | B2 | M4b | First diastolic BP |
+| DBP reading 2 | B4 | M5b | Second diastolic BP |
+| DBP reading 3 | B6 | M6b | Third diastolic BP |
+| BP medication | B7/H3 | M7 | Currently on antihypertensives |
+| Heart rate 1 | -- | M16a | First heart rate reading |
+| Heart rate 2 | -- | M16b | Second heart rate reading |
+| Heart rate 3 | -- | M16c | Third heart rate reading |
+
+Blood pressure: The package averages the last two of three readings
+(WHO protocol).  If only two readings are available, their average is
+used.  If only one reading is available, it is used directly.
+
+### Step 3: Biochemical measurements
+
+| Variable | v3.1 code | v3.2 code | Description |
+|----------|-----------|-----------|-------------|
+| Fasting glucose | C1 | B5 | Fasting blood glucose (mmol/L) |
+| Diabetes meds | C5 | B6/H8 | Currently on diabetes medication |
+| Total cholesterol | C6 | B8 | Total cholesterol (mmol/L) |
+| Cholesterol meds | C10 | B9/H14 | Currently on cholesterol medication |
+| HDL cholesterol | -- | B17 | HDL cholesterol (mmol/L) |
+| Triglycerides | -- | B16 | Fasting triglycerides (mmol/L) |
+
+### Health history (H-codes)
+
+| Variable | Code | Description |
+|----------|------|-------------|
+| BP ever measured | H1 | Ever had BP measured by health worker |
+| BP diagnosed | H2a | Ever told by doctor that BP is raised |
+| Glucose ever measured | H6 | Ever had blood sugar measured |
+| DM diagnosed | H7a | Ever told by doctor that blood sugar is raised |
+| Cholesterol ever measured | H12 | Ever had cholesterol measured |
+| Cholesterol diagnosed | H13a | Ever told by doctor that cholesterol is raised |
+| CVD history | H17 | History of heart attack, angina, or stroke |
+| Aspirin use | H18 | Currently taking aspirin regularly |
+| Statin use | H19 | Currently taking statins regularly |
+| Advised: quit tobacco | H20a | Doctor/health worker advised to quit tobacco |
+| Advised: reduce salt | H20b | Advised to reduce salt intake |
+| Advised: eat fruit/veg | H20c | Advised to eat more fruit/vegetables |
+| Advised: reduce fat | H20d | Advised to reduce dietary fat |
+| Advised: more PA | H20e | Advised to increase physical activity |
+| Advised: healthy weight | H20f | Advised to maintain healthy body weight |
+
+
+## How auto-detection works
+
+When you call `detect_steps_columns(data)` (or upload a file in the
+Shiny app), the package searches for each expected variable using a
+prioritised alias list.  For example, the fasting glucose variable is
+searched for as:
+
+```
+b5, b5_mmol, c1_mmol, fasting_glucose, glucose_fasting, fbg, fpg
+```
+
+The search is case-insensitive and uses the column names after
+`janitor::clean_names()` has standardised them.
+
+For ambiguous codes (like A1 which means different things in v3.1 vs
+v3.2), the package also checks the SPSS variable label to disambiguate.
+This is why `.sav` files produce the most reliable auto-detection.
+
+After detection, you can inspect the mapping:
+
+```{r inspect}
+raw  <- import_steps_data("my_data.sav")
+cols <- detect_steps_columns(raw)
+
+# See all detected columns
+str(cols[!sapply(cols, is.null)])
+
+# See what was NOT detected
+names(cols[sapply(cols, is.null)])
+```
+
+
+## Common data issues and solutions
+
+### Issue: Sex coded as numeric without labels
+
+Some datasets code sex as 1/2 without clear labels.  The package
+handles this automatically using the WHO STEPS convention:
+1 = Male, 2 = Female.  If your data uses a different coding, recode
+before analysis or override the column.
+
+### Issue: Yes/No variables coded inconsistently
+
+STEPS datasets use various codings for binary variables: 1/2 (yes/no),
+0/1, "Yes"/"No", "Y"/"N".  The `recode_yn()` function handles all of
+these automatically.  It treats 1 = Yes and 2 = No (the WHO convention),
+as well as 0/1 where 1 = Yes.
+
+### Issue: Glucose values in mg/dL instead of mmol/L
+
+The package expects biochemical values in mmol/L (the WHO standard).  If
+your data uses mg/dL, convert before analysis:
+
+```{r convert}
+# Glucose: mg/dL to mmol/L (divide by 18)
+raw$b5 <- raw$b5 / 18
+
+# Cholesterol: mg/dL to mmol/L (divide by 38.67)
+raw$b8 <- raw$b8 / 38.67
+```
+
+### Issue: Multiple datasets for different STEPS steps
+
+Some surveys store Step 1 (interview), Step 2 (measurements), and
+Step 3 (blood tests) in separate files.  Merge them by respondent ID
+before importing:
+
+```{r merge}
+step1 <- haven::read_spss("step1_interview.sav")
+step2 <- haven::read_spss("step2_measurements.sav")
+step3 <- haven::read_spss("step3_biochemistry.sav")
+
+combined <- dplyr::left_join(step1, step2, by = "pid") |>
+  dplyr::left_join(step3, by = "pid")
+
+# Save combined file
+haven::write_sav(combined, "steps_combined.sav")
+
+# Or import directly
+raw <- combined |> janitor::clean_names()
+```
+
+### Issue: Missing sampling weights
+
+If your dataset does not include sampling weights, the package will
+proceed with equal weights (equivalent to assuming a simple random
+sample).  This produces valid point estimates but confidence intervals
+may not correctly reflect the true survey design.
+
+For proper analysis, you need at minimum one weight variable.  The WHO
+STEPS toolkit computes three step-specific weights (WStep1, WStep2,
+WStep3) that account for non-response at each step.  Contact your
+survey statistician if weights are not in the data file.
+
+### Issue: Variables detected as wrong type
+
+If a numeric variable is stored as character (common with Epi Info
+exports), the cleaning step will attempt to convert it.  If conversion
+fails, the variable is set to NA with a warning message.  Check the
+console for messages like "NAs introduced by coercion".
+
+
+## Pre-flight checklist
+
+Before running the analysis, verify these items:
+
+1. **File format**: Preferably `.sav` (preserves variable labels for
+   better auto-detection).  CSV works but may require more manual
+   column mapping.
+
+2. **One row per respondent**: The data should be in wide format with
+   one row per survey participant and columns for each variable.
+
+3. **Age and sex present**: These are the only truly required variables.
+   Verify they contain reasonable values (age should be numeric,
+   sex should have exactly two levels).
+
+4. **Weights present**: Check for columns named `WStep1`, `WStep2`,
+   `WStep3`, or similar.  If using a single weight, ensure it maps to
+   `weight_step1`.
+
+5. **Biochemical units**: Glucose should be in mmol/L (typical values
+   3--15), cholesterol in mmol/L (typical values 2--10).  Values in
+   hundreds suggest mg/dL units that need conversion.
+
+6. **Blood pressure readings**: Should be in mmHg.  Typical SBP range
+   is 80--250, typical DBP range is 40--150.  Values outside this
+   range are set to NA during cleaning.
+
+7. **No duplicate respondent IDs**: If the same person appears multiple
+   times, prevalence estimates will be biased.
+
+8. **Consistent coding**: Binary variables should use the same coding
+   scheme throughout (ideally 1 = Yes, 2 = No per WHO convention).
+
+
+## Quick diagnostic script
+
+Run this after importing to check data quality:
+
+```{r diagnostic}
+library(stepssurvey)
+
+raw  <- import_steps_data("my_data.sav")
+cols <- detect_steps_columns(raw)
+
+# Summary
+cat("Rows:", nrow(raw), "\n")
+cat("Columns:", ncol(raw), "\n")
+cat("Detected:", sum(!sapply(cols, is.null)), "/", length(cols), "\n")
+
+# Check key variables
+if (!is.null(cols$age)) {
+  cat("\nAge range:", range(raw[[cols$age]], na.rm = TRUE), "\n")
+  cat("Age NAs:", sum(is.na(raw[[cols$age]])), "\n")
+}
+if (!is.null(cols$sex)) {
+  cat("\nSex distribution:\n")
+  print(table(raw[[cols$sex]], useNA = "ifany"))
+}
+if (!is.null(cols$weight_step1)) {
+  wt <- raw[[cols$weight_step1]]
+  cat("\nWeight range:", round(range(wt, na.rm = TRUE), 3), "\n")
+  cat("Weight NAs:", sum(is.na(wt)), "\n")
+}
+
+# List undetected variables
+missing <- names(cols[sapply(cols, is.null)])
+cat("\nUndetected variables (", length(missing), "):\n")
+cat(paste(" ", missing, collapse = "\n"), "\n")
+```
+
+
+## Further reading
+
+- `vignette("stepssurvey-guide")` -- full API documentation
+- `vignette("shiny-walkthrough")` -- interactive Shiny app guide
+- [WHO STEPS Manual, Part 4: Data Analysis](https://www.who.int/teams/noncommunicable-diseases/surveillance/systems-tools/steps/manuals)
+- [WHO STEPS Instrument v3.2](https://www.who.int/teams/noncommunicable-diseases/surveillance/systems-tools/steps/instrument)

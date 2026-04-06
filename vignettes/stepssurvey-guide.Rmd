@@ -1,0 +1,751 @@
+---
+title: "Analysing WHO STEPS Survey Data with stepssurvey"
+author: "Abhijit Pakhare"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Analysing WHO STEPS Survey Data with stepssurvey}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  fig.width  = 7,
+  fig.height = 5,
+  fig.align  = "center",
+  eval = TRUE
+)
+```
+
+## Introduction
+
+The WHO STEPwise Approach to NCD Risk Factor Surveillance (STEPS) is the
+standard method for collecting population-level data on chronic disease
+risk factors.  Surveys measure behavioural risk factors (tobacco, alcohol,
+diet, physical activity), physical measurements (anthropometry, blood
+pressure), and biochemical markers (blood glucose, cholesterol).
+
+The **stepssurvey** package provides a complete, end-to-end analysis
+pipeline that takes raw STEPS data from any country and produces
+publication-ready tables, visualisations, and Word reports -- all while
+properly accounting for the complex survey design (stratification,
+clustering, sampling weights).
+
+### What this guide covers
+
+1. Installing the package
+2. Understanding the data pipeline
+3. Importing and detecting STEPS variables (v3.1 and v3.2)
+4. Cleaning and deriving WHO-standard indicators
+5. Setting up the complex survey design
+6. Computing weighted prevalence estimates
+7. Building tables and visualisations
+8. Generating Word reports (fact sheet, data book, country report)
+9. Running the full pipeline in one call
+10. Working with your own data and customising the analysis
+
+
+## Installation
+
+Install the development version from GitHub:
+
+```{r install, eval = FALSE}
+# install.packages("pak")
+pak::pak("drpakhare/stepssurvey")
+```
+
+Or with **devtools**:
+
+```{r install-devtools, eval = FALSE}
+# install.packages("devtools")
+devtools::install_github("drpakhare/stepssurvey")
+```
+
+Load the package:
+
+```{r library}
+library(stepssurvey)
+```
+
+
+## The pipeline at a glance
+
+The package follows a linear, modular pipeline.  You can use the
+one-command `run_steps_pipeline()` shortcut or call each step yourself
+for full control.
+
+```
+  Raw data (.csv / .xlsx / .dta / .sav)
+       |
+       v
+  import_steps_data()          -- read any format
+       |
+       v
+  detect_steps_columns()       -- auto-detect v3.1/v3.2 codes
+       |
+       v
+  clean_steps_data()           -- derive WHO indicators
+       |
+       v
+  setup_survey_design()        -- step-specific weights
+       |
+       v
+  compute_all_indicators()     -- weighted prevalences & means
+       |
+       +---> build_steps_tables()      -> summary flextables
+       +---> build_steps_plots()       -> ggplot2 charts
+       +---> render_country_report()   -> Summary Report (Word)
+       |
+       v
+  compute_all_tables()         -- 60+ WHO registry tables
+       |
+       v
+  build_all_tables()           -> 3-panel flextables (Men|Women|Both)
+       |
+       +---> render_data_book()        -> Detailed Data Book (Word)
+```
+
+Each function returns its output, so you can inspect, modify, or export
+results at every stage.
+
+
+## Step 1: Generate or import data
+
+### Using the built-in test data generator
+
+For learning and testing, the package includes a realistic data simulator:
+
+```{r generate}
+raw <- generate_test_data(n = 3000, seed = 42)
+dim(raw)
+names(raw)
+```
+
+The generated dataset mimics a real STEPS survey with 5 strata,
+40 primary sampling units (PSUs), sampling weights, and realistic
+correlations between risk factors (e.g. blood pressure increasing
+with age, higher tobacco use in males).
+
+### Importing real STEPS data
+
+In practice you will have a data file exported from Epi Info, SPSS, or
+Stata.  The `import_steps_data()` function reads all common formats and
+standardises column names to lowercase with underscores:
+
+```{r import, eval = FALSE}
+# CSV
+raw <- import_steps_data("data/raw/steps_survey_2024.csv")
+
+# Excel
+raw <- import_steps_data("data/raw/steps_survey_2024.xlsx")
+
+# Stata (.dta) -- common for STEPS exports
+raw <- import_steps_data("data/raw/steps_survey_2024.dta")
+
+# SPSS (.sav)
+raw <- import_steps_data("data/raw/steps_survey_2024.sav")
+```
+
+The function uses the file extension to pick the right reader
+(`readr::read_csv`, `readxl::read_excel`, `haven::read_dta`, or
+`haven::read_spss`), then passes column names through
+`janitor::clean_names()` so that regardless of original casing you get
+a consistent format like `wt_final`, `age`, `sex`.
+
+
+## Step 2: Auto-detect STEPS variables
+
+WHO STEPS datasets use standardised variable codes, but the codes changed
+between instrument versions and many countries add their own prefixes.
+The `detect_steps_columns()` function searches for each variable using a
+prioritised alias list:
+
+```{r detect}
+cols <- detect_steps_columns(raw)
+```
+
+It returns a named list mapping each conceptual variable to the actual
+column found in your data.  You can inspect the mapping:
+
+```{r detect-inspect}
+# Which column was matched for fasting glucose?
+cols$fasting_glucose
+
+# Which column for SBP reading 1?
+cols$sbp1
+
+# How many columns were detected?
+sum(!sapply(cols, is.null))
+```
+
+### Version 3.1 vs 3.2 variable codes
+
+A key feature of the package is transparent support for both WHO STEPS
+instrument versions.  The variable codes changed substantially between
+versions:
+
+| Measurement        | v3.1 / Epi Info | v3.2 Instrument |
+|--------------------|-----------------|-----------------|
+| SBP readings       | B1, B3, B5      | M4a, M5a, M6a   |
+| DBP readings       | B2, B4, B6      | M4b, M5b, M6b   |
+| BP medications     | B7              | M7 / H3          |
+| Height             | M1              | M11              |
+| Weight             | M2              | M12              |
+| Waist              | M3              | M14              |
+| Fasting glucose    | C1 (c1_mmol)    | B5               |
+| Diabetes meds      | C5              | B6 / H8          |
+| Total cholesterol  | C6              | B8               |
+| Cholesterol meds   | C10             | B9 / H14         |
+| Sex                | --              | C1               |
+| Age                | C1              | C3               |
+
+The detection function includes aliases for both versions, so a dataset
+using `b1` for SBP (v3.1) and one using `m4a` (v3.2) will both be
+detected correctly.  The search is case-insensitive.
+
+If a column is not found automatically, you can override the mapping
+before cleaning:
+
+```{r override, eval = FALSE}
+cols$fasting_glucose <- "my_custom_glucose_variable"
+```
+
+
+## Step 3: Clean and derive indicators
+
+The `clean_steps_data()` function performs all WHO-recommended data
+processing in a single call:
+
+```{r clean}
+clean <- clean_steps_data(raw, cols, age_min = 18, age_max = 69)
+dim(clean)
+```
+
+### What the cleaning step does
+
+**Demographics:**
+
+- Restricts age to the specified range (default 18--69)
+- Creates WHO standard age groups: 18--24, 25--34, 35--44, 45--54,
+  55--64, 65+
+- Harmonises sex coding (1/2, "Male"/"Female", "M"/"F" all accepted)
+- Ensures survey weight, stratum, and PSU columns are present
+
+**Behavioural risk factors (Step 1):**
+
+- Recodes tobacco and alcohol variables to logical TRUE/FALSE using
+  `recode_yn()`, which understands 0/1, 1/2, "yes"/"no" patterns
+- Computes average daily fruit and vegetable servings and flags
+  `low_fruit_veg` (combined < 5 servings/day)
+- Classifies physical activity into Low / Moderate / High based on
+  MET-minutes/week thresholds (< 600, 600--2999, >= 3000)
+
+**Physical measurements (Step 2):**
+
+- Applies plausibility checks (e.g. height 100--250 cm, weight 20--300 kg,
+  waist 40--200 cm) and sets implausible values to `NA`
+- Computes BMI and classifies into Underweight / Normal / Overweight / Obese
+- Flags central obesity using WHO waist circumference thresholds
+  (>= 102 cm male, >= 88 cm female)
+- Computes waist-to-hip ratio if both measurements are available
+- Averages the last two of three BP readings (WHO protocol) to obtain
+  mean SBP and mean DBP
+- Creates the `raised_bp` indicator (SBP >= 140 or DBP >= 90 or on
+  medication) and WHO blood pressure staging
+
+**Biochemical measurements (Step 3):**
+
+- Flags raised fasting glucose (>= 7.0 mmol/L or on diabetes medication)
+- Flags impaired fasting glucose (6.1--6.9 mmol/L)
+- Flags raised total cholesterol (>= 5.0 mmol/L)
+- Flags low HDL cholesterol (sex-specific thresholds)
+- Flags raised triglycerides (>= 1.7 mmol/L)
+
+You can inspect the derived variables:
+
+```{r clean-inspect}
+# BMI categories
+table(clean$bmi_category, clean$sex)
+
+# Blood pressure staging
+table(clean$bp_stage)
+
+# Physical activity levels
+table(clean$pa_category, clean$sex)
+```
+
+
+## Step 4: Set up the survey design
+
+STEPS surveys use complex sampling designs.  Ignoring the design leads to
+biased estimates and incorrect confidence intervals.  The
+`setup_survey_design()` function creates a `survey::svydesign` object
+that accounts for weights, stratification, and clustering:
+
+```{r design}
+designs <- setup_survey_design(clean)
+```
+
+The returned object is a list with three elements (`step1`, `step2`,
+`step3`), each a `survey::svydesign` object weighted appropriately
+for that step of the survey.  Functions like `compute_all_indicators()`
+accept this list directly, but for custom estimates you pick the
+design matching the step of the variable you are analysing:
+
+The function auto-detects the design complexity based on which columns
+are present:
+
+- **Full complex design**: weights + strata + clusters
+- **Weights + clusters**: no stratification variable
+- **Weights + strata**: no clustering (rare)
+- **Weights only**: self-representing design
+- **Unweighted**: simple random sample (weights set to 1)
+
+Extreme sampling weights are automatically trimmed to the range
+\[0.1, 10\] using `survey::trimWeights()` to prevent a few observations
+from dominating the estimates.
+
+The returned object can be used with any function from the **survey**
+package if you need custom analyses beyond what the package provides.
+
+
+## Step 5: Compute indicators
+
+### All indicators at once
+
+```{r indicators}
+result <- compute_all_indicators(designs)
+```
+
+This returns a list with two elements:
+
+- `result$results` -- a nested list of domain-specific estimates
+  (total, by sex, by age group)
+- `result$key_indicators` -- a tidy data frame of headline prevalences
+
+```{r key}
+result$key_indicators
+```
+
+### Domain-specific functions
+
+For more control, call each domain function separately:
+
+```{r domain, eval = FALSE}
+tob  <- compute_tobacco_indicators(designs$step1)
+alc  <- compute_alcohol_indicators(designs$step1)
+diet <- compute_diet_pa_indicators(designs$step1)
+anth <- compute_anthropometry_indicators(designs$step2)
+bp   <- compute_bp_indicators(designs$step2)
+bio  <- compute_biochemical_indicators(designs$step3)
+```
+
+Each returns a named list.  For example, the tobacco module returns:
+
+```{r tob-example}
+tob <- compute_tobacco_indicators(designs$step1)
+names(tob)
+
+# Overall prevalence of current tobacco use
+tob$current_tobacco_total
+
+# Prevalence by sex
+tob$current_tobacco_by_sex
+```
+
+### Custom weighted estimates
+
+The package exports two low-level helpers for any weighted estimate you
+need:
+
+```{r custom}
+# Weighted proportion with 95% CI (raised_bp is a Step 2 variable)
+svyprop(~raised_bp, designs$step2)
+
+# Stratified by sex
+svyprop(~raised_bp, designs$step2, by = ~sex)
+
+# Weighted mean with 95% CI
+svymn(~mean_sbp, designs$step2, by = ~sex)
+```
+
+
+## Step 6: Build publication-ready tables
+
+The package provides **two table systems** for different purposes.
+
+### Summary tables (Both Sexes only)
+
+```{r tables}
+tables <- build_steps_tables(result$results)
+names(tables)
+```
+
+Each table is a **flextable** object styled with WHO STEPS branding
+(dark blue headers, formatted confidence intervals).  These tables show
+estimates by age group for Both Sexes combined -- ideal for summary
+reports and quick reference.
+
+```{r table-show, eval = FALSE}
+# Display the raised blood pressure table
+tables$raised_bp
+
+# Export to Word
+flextable::save_as_docx(tables$raised_bp, path = "bp_table.docx")
+```
+
+### Detailed WHO 3-panel tables (Men | Women | Both Sexes)
+
+For the full WHO STEPS data book format, use the detailed table engine.
+This produces ~60 tables in the standard 3-panel layout (Age Group | Men |
+Women | Both Sexes):
+
+```{r detailed-tables, eval = FALSE}
+# Step 1: Compute raw results from the table registry
+computed <- compute_all_tables(designs)
+
+# Step 2: Format into flextable objects with WHO styling
+detailed <- build_all_tables(computed)
+names(detailed)  # e.g. "T_current_smokers", "M_bp_mean", "B_glucose_raised"
+```
+
+The table IDs use prefixes matching WHO STEPS domains:
+
+| Prefix | Domain                    |
+|--------|---------------------------|
+| T_     | Tobacco                   |
+| A_     | Alcohol                   |
+| D_     | Diet                      |
+| P_     | Physical Activity         |
+| H_     | Health History & Treatment|
+| M_     | Physical Measurements     |
+| B_     | Biochemical Measurements  |
+| R_     | Cardiovascular Risk       |
+| RF_    | Combined Risk Factors     |
+
+You can access individual tables by ID or filter by section:
+
+```{r registry, eval = FALSE}
+# Browse the full table registry
+registry <- steps_table_registry()
+
+# Get all tables for a specific section
+bp_entries <- get_registry_by_section("Blood Pressure")
+
+# Get all Step 2 tables
+step2_entries <- get_registry_by_step(2)
+
+# List available sections
+list_registry_sections()
+```
+
+
+## Step 7: Create visualisations
+
+```{r plots, fig.width = 8, fig.height = 5}
+plots <- build_steps_plots(
+  indicators    = result$results,
+  key_indicators = result$key_indicators,
+  country_name  = "Exampleland",
+  survey_year   = 2024
+)
+names(plots)
+```
+
+### Overview chart
+
+The overview plot shows all key indicators as a horizontal bar chart with
+95% confidence intervals, sorted by prevalence:
+
+```{r overview, fig.width = 8, fig.height = 5}
+plots$overview
+```
+
+### Sex-stratified dashboard
+
+If multiple sex-stratified indicators are available, the package creates
+a 2 x 2 dashboard using **patchwork**:
+
+```{r dashboard, fig.width = 10, fig.height = 7, eval = FALSE}
+plots$sex_dashboard
+```
+
+### Age-stratified trends
+
+Age trend plots show how each risk factor varies across the WHO standard
+age groups, with shaded confidence bands:
+
+```{r age-trend, fig.width = 8, fig.height = 4.5}
+plots$bp_by_age
+```
+
+### Saving plots
+
+```{r save-plots, eval = FALSE}
+save_steps_plots(plots, output_dir = "outputs/figures")
+# Creates:
+#   outputs/figures/01_overview_indicators.png
+#   outputs/figures/02_by_sex_dashboard.png
+#   outputs/figures/03_bp_by_age.png
+#   outputs/figures/04_obesity_by_age.png
+```
+
+### WHO STEPS colour palette and theme
+
+The package uses a consistent visual identity.  You can apply the same
+styling to your own ggplot2 plots:
+
+```{r theme, fig.width = 6, fig.height = 3.5}
+pal <- steps_colors()
+str(pal)
+
+library(ggplot2)
+ggplot(clean, aes(x = age_group, fill = sex)) +
+  geom_bar(position = "dodge") +
+  scale_fill_manual(values = c(Male = pal$male, Female = pal$female)) +
+  theme_steps() +
+  labs(title = "Sample distribution by age and sex")
+```
+
+
+## Step 8: Generate Word reports
+
+The package produces two complementary reports:
+
+| Report | Function | Content |
+|--------|----------|---------|
+| **Summary Report** | `render_country_report()` | Narrative with key findings, charts, and recommendations |
+| **Detailed Data Book** | `render_data_book()` | Complete WHO 3-panel tables (Men \| Women \| Both Sexes) across all domains |
+
+```{r reports, eval = FALSE}
+cfg <- steps_config(
+  data_path    = "data/raw/steps_survey_2024.csv",
+  country_name = "Exampleland",
+  survey_year  = 2024,
+  age_min      = 18,
+  age_max      = 69
+)
+
+# Summary report -- narrative with key findings, charts, recommendations
+render_country_report(cfg, output_dir = "outputs")
+
+# Data book -- detailed WHO 3-panel tables by domain
+render_data_book(cfg, output_dir = "outputs")
+
+# Fact sheet -- one-page overview of key indicators
+render_fact_sheet(cfg, output_dir = "outputs")
+```
+
+Each function runs the entire pipeline internally (import, clean, analyse)
+and renders an R Markdown template to a Word document.  The output files
+are saved in the specified directory.
+
+### What each report contains
+
+The **Summary Report** includes an executive summary table, narrative
+sections for each risk factor domain with inline prevalence figures,
+embedded charts (overview indicators, by-sex breakdowns, age trends),
+and WHO-aligned policy recommendations.
+
+The **Data Book** contains the full set of ~60 WHO STEPS tables in the
+standard 3-panel format.  Each table shows estimates by age group
+separately for Men, Women, and Both Sexes.  Tables are organised by
+STEPS step: Step 1 (Behavioural), Step 1.5 (Health History), Step 2
+(Physical Measurements), Step 3 (Biochemical), and Combined Risk Factors.
+
+
+## One-command pipeline
+
+For the fastest path from raw data to results, `run_steps_pipeline()`
+chains every step and returns all intermediate objects:
+
+```{r pipeline, eval = FALSE}
+out <- run_steps_pipeline(
+  data_path      = "data/raw/steps_survey_2024.csv",
+  country_name   = "Exampleland",
+  survey_year    = 2024,
+  age_min        = 18,
+  age_max        = 69,
+  output_dir     = "outputs",
+  render_reports = TRUE
+)
+
+# Access any intermediate result
+out$raw_data
+out$clean_data
+out$design
+out$indicators
+out$key_indicators
+out$tables
+out$plots
+```
+
+Setting `render_reports = FALSE` skips the Word documents (useful for
+interactive exploration or when **rmarkdown** / Pandoc are not available).
+
+
+## Working with real STEPS data
+
+### Preparing your data file
+
+The package accepts data in four formats:
+
+| Format     | Extension | Typical source                   |
+|------------|-----------|----------------------------------|
+| CSV        | .csv      | Spreadsheet export               |
+| Excel      | .xlsx     | Direct data entry                |
+| Stata      | .dta      | WHO Epi Info / analysis template |
+| SPSS       | .sav      | SPSS data export                 |
+
+Before importing, ensure the file contains at minimum:
+
+- **Age** and **sex** columns (required for all analyses)
+- **Sampling weight** column (recommended; if absent, all weights are
+  set to 1)
+- At least some risk factor measurements from Step 1, 2, or 3
+
+### Handling custom variable names
+
+If your dataset uses non-standard column names that are not auto-detected,
+override the mapping after detection:
+
+```{r custom-names, eval = FALSE}
+raw  <- import_steps_data("my_steps_data.csv")
+cols <- detect_steps_columns(raw)
+
+# Suppose your glucose column is named "blood_sugar_fasting"
+cols$fasting_glucose <- "blood_sugar_fasting"
+
+# Suppose BP columns use a different naming pattern
+cols$sbp1 <- "systolic_bp_1"
+cols$dbp1 <- "diastolic_bp_1"
+
+# Then proceed as normal
+clean   <- clean_steps_data(raw, cols)
+designs <- setup_survey_design(clean)
+result  <- compute_all_indicators(designs)
+```
+
+### Adjusting age range
+
+Some STEPS surveys target populations outside the standard 18--69 range.
+Adjust with the `age_min` and `age_max` parameters:
+
+```{r age-range, eval = FALSE}
+# Include up to age 79
+clean <- clean_steps_data(raw, cols, age_min = 18, age_max = 79)
+```
+
+Note that changing the upper age limit adds a wider final age group
+(e.g. 65--79 instead of 65+).
+
+
+## Complete worked example
+
+This section walks through a full analysis using simulated data, showing
+every step from generation to output.
+
+```{r worked, fig.width = 8, fig.height = 5}
+library(stepssurvey)
+
+# 1. Generate a realistic test dataset
+raw <- generate_test_data(n = 3000, seed = 42)
+
+# 2. Detect standard STEPS variable columns
+cols <- detect_steps_columns(raw)
+
+# 3. Clean data and derive all indicators
+clean <- clean_steps_data(raw, cols, age_min = 18, age_max = 69)
+
+# 4. Create the complex survey design
+designs <- setup_survey_design(clean)
+
+# 5. Compute all NCD risk factor indicators
+result <- compute_all_indicators(designs)
+
+# 6. View headline estimates
+result$key_indicators
+
+# 7. Build formatted tables
+tables <- build_steps_tables(result$results)
+
+# 8. Build visualisations
+plots <- build_steps_plots(
+  indicators     = result$results,
+  key_indicators = result$key_indicators,
+  country_name   = "Exampleland",
+  survey_year    = 2024
+)
+
+# 9. Display the overview chart
+plots$overview
+```
+
+
+## WHO standard definitions used
+
+The package implements the following WHO STEPS definitions for all
+derived indicators:
+
+| Indicator                     | Definition                                                                  |
+|-------------------------------|-----------------------------------------------------------------------------|
+| Current tobacco use           | Currently smokes any tobacco product (T1 = Yes)                             |
+| Daily tobacco use             | Smokes tobacco daily (T2 = Yes)                                             |
+| Current alcohol use           | Consumed alcohol in the past 30 days (A5 = Yes)                             |
+| Heavy episodic drinking       | 6 or more standard drinks on a single occasion in past 30 days (A9)         |
+| Insufficient physical activity| Total MET-minutes per week < 600                                            |
+| Low fruit and vegetable intake| Combined < 5 servings per day                                               |
+| Overweight or obese           | BMI >= 25 kg/m^2^                                                           |
+| Obese                         | BMI >= 30 kg/m^2^                                                           |
+| Central obesity               | Waist >= 102 cm (male) or >= 88 cm (female)                                |
+| Raised blood pressure         | Mean SBP >= 140 mmHg or mean DBP >= 90 mmHg or currently on BP medication   |
+| Raised fasting glucose        | Fasting blood glucose >= 7.0 mmol/L or currently on diabetes medication     |
+| Impaired fasting glucose      | Fasting blood glucose 6.1--6.9 mmol/L                                       |
+| Raised total cholesterol      | Total cholesterol >= 5.0 mmol/L                                             |
+| Low HDL cholesterol           | HDL < 1.0 mmol/L (male) or < 1.3 mmol/L (female)                           |
+| Raised triglycerides          | Triglycerides >= 1.7 mmol/L                                                 |
+
+Blood pressure readings follow the WHO protocol of averaging the last two
+of three measurements taken three minutes apart.
+
+
+## FAQ
+
+**Can I use this package with STEPS surveys from any country?**
+Yes.
+The variable detection system supports both v3.1 and v3.2 naming
+conventions, plus common country-specific aliases.  Override any
+undetected columns manually as shown above.
+
+**What if my dataset is missing some risk factor modules?**
+The package handles missing modules gracefully.  If, for example, no
+biochemical columns are found, the glucose and cholesterol indicators
+are simply skipped and the tables and plots adapt accordingly.
+
+**Can I add my own indicators?**
+Absolutely.  After the cleaning step you have a standard data frame with
+all derived variables.  Use the `survey::svydesign` object with `svyprop()`
+or `svymn()` (or any **survey** package function) for custom analyses.
+
+**How do I cite this package?**
+```{r cite, eval = FALSE}
+citation("stepssurvey")
+```
+
+
+## Further resources
+
+- [WHO STEPS Manual](https://www.who.int/teams/noncommunicable-diseases/surveillance/systems-tools/steps/manuals)
+- [STEPS Instrument v3.2 (Q-by-Q Guide)](https://www.who.int/teams/noncommunicable-diseases/surveillance/systems-tools/steps/instrument)
+- [STEPS Data Analysis Tools](https://www.who.int/teams/noncommunicable-diseases/surveillance/systems-tools/steps/data-analysis-reporting-tools)
+- [Package source on GitHub](https://github.com/drpakhare/stepssurvey)
+
+
+## Session info
+
+```{r session}
+sessionInfo()
+```

@@ -105,6 +105,9 @@ run_steps_pipeline <- function(data_path,
     saveRDS(tables,         file.path(proc_dir, "tables.rds"))
     saveRDS(plots,          file.path(proc_dir, "plots.rds"))
 
+    # Set data_dir so the Rmd template knows where to find the RDS files
+    config$data_dir <- proc_dir
+
     tryCatch({
       render_fact_sheet(config, output_dir)
       render_data_book(config, output_dir)

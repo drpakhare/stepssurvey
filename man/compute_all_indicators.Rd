@@ -7,7 +7,9 @@
 compute_all_indicators(design)
 }
 \arguments{
-\item{design}{A survey design object from \code{\link[=setup_survey_design]{setup_survey_design()}}.}
+\item{design}{A \code{steps_designs} list from \code{\link[=setup_survey_design]{setup_survey_design()}}
+(with elements \verb{$step1}, \verb{$step2}, \verb{$step3}), or a single
+\link[survey:svydesign]{survey::svydesign} object for backward compatibility.}
 }
 \value{
 A list with two elements:
@@ -20,14 +22,18 @@ lower, and upper, summarising headline estimates across all domains
 }
 \description{
 Runs all indicator modules (tobacco, alcohol, diet & physical activity,
-anthropometry, blood pressure, and biochemical) on the survey design object
-and returns a named list of results plus a summary tibble of key headline
-indicators for fact sheets.
+anthropometry, blood pressure, and biochemical), using the appropriate
+step-specific survey design for each domain per WHO STEPS methodology:
+\itemize{
+\item Step 1 (behavioural): tobacco, alcohol, diet & physical activity
+\item Step 2 (physical):    anthropometry, blood pressure
+\item Step 3 (biochemical): biochemical measures
+}
 }
 \examples{
 \dontrun{
-  design <- setup_survey_design(data = survey_data)
-  all_indicators <- compute_all_indicators(design)
+  designs <- setup_survey_design(data = survey_data)
+  all_indicators <- compute_all_indicators(designs)
   all_indicators$results
   all_indicators$key_indicators
 }

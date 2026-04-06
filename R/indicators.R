@@ -1,11 +1,15 @@
 #' Compute All STEPS Indicators
 #'
 #' Runs all indicator modules (tobacco, alcohol, diet & physical activity,
-#' anthropometry, blood pressure, and biochemical) on the survey design object
-#' and returns a named list of results plus a summary tibble of key headline
-#' indicators for fact sheets.
+#' anthropometry, blood pressure, and biochemical), using the appropriate
+#' step-specific survey design for each domain per WHO STEPS methodology:
+#' - Step 1 (behavioural): tobacco, alcohol, diet & physical activity
+#' - Step 2 (physical):    anthropometry, blood pressure
+#' - Step 3 (biochemical): biochemical measures
 #'
-#' @param design A survey design object from [setup_survey_design()].
+#' @param design A `steps_designs` list from [setup_survey_design()]
+#'   (with elements `$step1`, `$step2`, `$step3`), or a single
+#'   [survey::svydesign] object for backward compatibility.
 #'
 #' @return A list with two elements:
 #'   - `results`: a named list containing indicator results grouped by domain
@@ -17,23 +21,62 @@
 #'
 #' @examples
 #' \dontrun{
-#'   design <- setup_survey_design(data = survey_data)
-#'   all_indicators <- compute_all_indicators(design)
+#'   designs <- setup_survey_design(data = survey_data)
+#'   all_indicators <- compute_all_indicators(designs)
 #'   all_indicators$results
 #'   all_indicators$key_indicators
 #' }
 compute_all_indicators <- function(design) {
+  # Support both old (single design) and new (steps_designs list) format
+
+  if (inherits(design, "steps_designs")) {
+    d1 <- design$step1
+    d2 <- design$step2
+    d3 <- design$step3
+  } else {
+    # Backward compatibility: single design for all steps
+    d1 <- design
+    d2 <- design
+    d3 <- design
+  }
+
+  # Step 1 — Behavioural indicators
+  message("Computing tobacco indicators...")
+  tobacco <- compute_tobacco_indicators(d1)
+  message("Computing alcohol indicators...")
+  alcohol <- compute_alcohol_indicators(d1)
+  message("Computing diet & physical activity indicators...")
+  diet_pa <- compute_diet_pa_indicators(d1)
+
+  # Step 2 — Physical measurement indicators
+  message("Computing anthropometry indicators...")
+  anthropometry <- compute_anthropometry_indicators(d2)
+  message("Computing blood pressure indicators...")
+  blood_pressure <- compute_bp_indicators(d2)
+
+  # Step 3 — Biochemical indicators
+  message("Computing biochemical indicators...")
+  biochemical <- compute_biochemical_indicators(d3)
+
   indicators <- list(
-    tobacco       = compute_tobacco_indicators(design),
-    alcohol       = compute_alcohol_indicators(design),
-    diet_pa       = compute_diet_pa_indicators(design),
-    anthropometry = compute_anthropometry_indicators(design),
-    blood_pressure = compute_bp_indicators(design),
-    biochemical   = compute_biochemical_indicators(design)
+    tobacco        = tobacco,
+    alcohol        = alcohol,
+    diet_pa        = diet_pa,
+    anthropometry  = anthropometry,
+    blood_pressure = blood_pressure,
+    biochemical    = biochemical
   )
 
+  # Prefer current_tobacco_any (smoking + smokeless) as headline; fall back
+
+  tob_key <- if (!is.null(indicators$tobacco[["current_tobacco_any_total"]])) {
+    "current_tobacco_any_total"
+  } else {
+    "current_tobacco_total"
+  }
+
   key_indicators <- dplyr::bind_rows(
-    extract_key(indicators$tobacco,       "Tobacco",       "current_tobacco_total",    "Current tobacco use"),
+    extract_key(indicators$tobacco,       "Tobacco",       tob_key,                    "Current tobacco use"),
     extract_key(indicators$alcohol,       "Alcohol",       "current_alcohol_total",    "Current alcohol use"),
     extract_key(indicators$alcohol,       "Alcohol",       "heavy_episodic_total",     "Heavy episodic drinking"),
     extract_key(indicators$diet_pa,       "Physical Activity", "insufficient_pa_total", "Insufficient physical activity"),

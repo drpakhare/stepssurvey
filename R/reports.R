@@ -119,6 +119,11 @@ render_data_book <- function(config, output_dir = "outputs") {
 
   output_file <- file.path(output_dir, "data_book.docx")
 
+  # Ensure config has data_dir pointing to where RDS files live
+  if (is.null(config$data_dir)) {
+    config$data_dir <- file.path(output_dir, "data")
+  }
+
   tryCatch({
     rmarkdown::render(
       template_path,
@@ -171,6 +176,12 @@ render_country_report <- function(config, output_dir = "outputs") {
   }
 
   output_file <- file.path(output_dir, "country_report.docx")
+
+  # Ensure config has data_dir pointing to where RDS files live
+  if (is.null(config$data_dir)) {
+    # Default: look for a "data" subdirectory in output_dir
+    config$data_dir <- file.path(output_dir, "data")
+  }
 
   tryCatch({
     rmarkdown::render(
