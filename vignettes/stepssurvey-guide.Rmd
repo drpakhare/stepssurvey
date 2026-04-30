@@ -39,13 +39,17 @@ clustering, sampling weights).
 1. Installing the package
 2. Understanding the data pipeline
 3. Importing and detecting STEPS variables (v3.1 and v3.2)
-4. Cleaning and deriving WHO-standard indicators
-5. Setting up the complex survey design
-6. Computing weighted prevalence estimates
-7. Building tables and visualisations
-8. Generating Word reports (fact sheet, data book, country report)
-9. Running the full pipeline in one call
-10. Working with your own data and customising the analysis
+4. Column mapping for non-standard datasets
+5. Cleaning and deriving WHO-standard indicators
+6. Configurable indicator thresholds
+7. Data quality diagnostics
+8. Setting up the complex survey design
+9. Computing weighted prevalence estimates
+10. Building tables and visualisations (including forest plot and radar chart)
+11. Generating reports (fact sheet, data book, country report)
+12. Running the full pipeline in one call
+13. Using the interactive Shiny app
+14. Working with your own data
 
 
 ## Installation
@@ -85,10 +89,15 @@ for full control.
        |
        v
   detect_steps_columns()       -- auto-detect v3.1/v3.2 codes
+  -- OR --
+  read_column_mapping()        -- use Excel mapping template
        |
        v
   clean_steps_data()           -- derive WHO indicators
-       |
+       |                          (configurable thresholds)
+       v
+  steps_data_quality()         -- digit preference, completeness,
+       |                          plausibility, weight diagnostics
        v
   setup_survey_design()        -- step-specific weights
        |
@@ -96,7 +105,8 @@ for full control.
   compute_all_indicators()     -- weighted prevalences & means
        |
        +---> build_steps_tables()      -> summary flextables
-       +---> build_steps_plots()       -> ggplot2 charts
+       +---> build_steps_plots()       -> ggplot2 charts + forest + radar
+       +---> render_fact_sheet()       -> Fact Sheet (HTML or Word)
        +---> render_country_report()   -> Summary Report (Word)
        |
        v
@@ -213,6 +223,57 @@ before cleaning:
 cols$fasting_glucose <- "my_custom_glucose_variable"
 ```
 
+### Column mapping for non-standard datasets
+
+Many real-world STEPS datasets use country-specific variable names that
+auto-detection cannot resolve.  The package includes an Excel mapping
+template that lets you specify the correspondence between your column
+names and the standard STEPS variables.
+
+**Step 1:** Get the blank template:
+
+```{r mapping-template, eval = FALSE}
+# Copy the template to your working directory
+file.copy(
+  system.file("templates", "column_mapping_template.xlsx", package = "stepssurvey"),
+  "my_mapping.xlsx"
+)
+```
+
+The template has two sheets: **Instructions** with usage guidance, and
+**Column Mapping** with 110 standard variables organised by domain
+(Demographics, Tobacco, Alcohol, Diet, Physical Activity, Anthropometry,
+Blood Pressure, Biochemical, History & Treatment).  Required variables
+are highlighted in red; optional ones in yellow.
+
+**Step 2:** Open the template in Excel, and for each variable in
+column A, type your dataset's column name in column C ("Your Column
+Name").  Leave blank any variables your dataset does not have.
+
+**Step 3:** Read the filled template:
+
+```{r mapping-read, eval = FALSE}
+cols <- read_column_mapping("my_mapping.xlsx", data = raw)
+```
+
+The `data` argument is optional but recommended -- it validates that
+every mapped column actually exists in your dataset and warns about
+typos.  The returned `cols` list is identical in structure to what
+`detect_steps_columns()` produces, so you can pass it directly to
+`clean_steps_data()`.
+
+The `run_steps_pipeline()` function also accepts a `mapping_file`
+parameter:
+
+```{r mapping-pipeline, eval = FALSE}
+result <- run_steps_pipeline(
+  "my_data.dta",
+  country_name = "My Country",
+  survey_year  = 2024,
+  mapping_file = "my_mapping.xlsx"
+)
+```
+
 
 ## Step 3: Clean and derive indicators
 
@@ -264,6 +325,27 @@ dim(clean)
 - Flags low HDL cholesterol (sex-specific thresholds)
 - Flags raised triglycerides (>= 1.7 mmol/L)
 
+### Configurable indicator thresholds
+
+All indicator thresholds can be customised.  This is essential when a
+country uses non-standard definitions (e.g. Mongolia uses 130/80 mmHg
+for raised blood pressure instead of the WHO default 140/90):
+
+```{r thresholds, eval = FALSE}
+clean <- clean_steps_data(raw, cols,
+  bp_sbp_threshold          = 130,   # SBP threshold (default 140)
+  bp_dbp_threshold          = 80,    # DBP threshold (default 90)
+  bmi_overweight             = 25.0,  # BMI overweight (default 25)
+  bmi_obese                  = 30.0,  # BMI obese (default 30)
+  glucose_threshold          = 7.0,   # Raised glucose mmol/L (default 7.0)
+  glucose_impaired_threshold = 6.1,   # Impaired glucose mmol/L (default 6.1)
+  chol_threshold             = 5.0    # Raised cholesterol mmol/L (default 5.0)
+)
+```
+
+The same thresholds are available in `steps_config()` and propagate
+through `run_steps_pipeline()` and the Shiny app interface.
+
 You can inspect the derived variables:
 
 ```{r clean-inspect}
@@ -276,6 +358,48 @@ table(clean$bp_stage)
 # Physical activity levels
 table(clean$pa_category, clean$sex)
 ```
+
+
+## Step 3b: Data quality diagnostics
+
+Before proceeding with analysis, the package provides a comprehensive
+data quality assessment.  The `steps_data_quality()` function checks
+four dimensions:
+
+```{r quality, eval = FALSE}
+quality <- steps_data_quality(clean)
+names(quality)
+# [1] "digit_preference" "completeness" "plausibility" "weights"
+```
+
+**Digit preference** detects heaping on terminal digits 0 and 5 in
+blood pressure and anthropometric measurements -- a common data
+collection artefact:
+
+```{r digit-plot, eval = FALSE}
+plot_digit_preference(quality, measure = "sbp")
+```
+
+**Completeness** reports the percentage of non-missing values for every
+key variable, helping identify modules that may have been skipped.
+
+```{r completeness-plot, eval = FALSE}
+plot_completeness(quality)
+```
+
+**Plausibility** flags values outside physiologically reasonable ranges
+(e.g. systolic BP > 300 mmHg, height < 100 cm).
+
+**Sampling weights** shows the distribution and coefficient of variation
+of each step-specific weight, helping detect extreme weights that might
+destabilise survey estimates:
+
+```{r weights-plot, eval = FALSE}
+plot_weights(quality)
+```
+
+In the Shiny app, the **Quality** tab presents all four diagnostics
+interactively with summary value boxes.
 
 
 ## Step 4: Set up the survey design
@@ -481,6 +605,29 @@ age groups, with shaded confidence bands:
 plots$bp_by_age
 ```
 
+### Forest plot
+
+The forest plot shows all key indicators as horizontal point-and-CI
+estimates, colour-coded by STEPS domain:
+
+```{r forest, fig.width = 8, fig.height = 6, eval = FALSE}
+plots$forest
+# Or build standalone:
+build_forest_plot(result$key_indicators, "Exampleland", 2024)
+```
+
+### Risk profile radar chart
+
+The radar (spider) chart provides a visual fingerprint of the country's
+NCD risk factor profile, making it easy to spot which domains are most
+affected:
+
+```{r radar, fig.width = 7, fig.height = 7, eval = FALSE}
+plots$radar
+# Or build standalone:
+build_radar_plot(result$key_indicators, "Exampleland", 2024)
+```
+
 ### Saving plots
 
 ```{r save-plots, eval = FALSE}
@@ -490,6 +637,8 @@ save_steps_plots(plots, output_dir = "outputs/figures")
 #   outputs/figures/02_by_sex_dashboard.png
 #   outputs/figures/03_bp_by_age.png
 #   outputs/figures/04_obesity_by_age.png
+#   outputs/figures/05_forest_plot.png
+#   outputs/figures/06_radar_plot.png
 ```
 
 ### WHO STEPS colour palette and theme
@@ -512,12 +661,13 @@ ggplot(clean, aes(x = age_group, fill = sex)) +
 
 ## Step 8: Generate Word reports
 
-The package produces two complementary reports:
+The package produces three complementary reports:
 
-| Report | Function | Content |
-|--------|----------|---------|
-| **Summary Report** | `render_country_report()` | Narrative with key findings, charts, and recommendations |
-| **Detailed Data Book** | `render_data_book()` | Complete WHO 3-panel tables (Men \| Women \| Both Sexes) across all domains |
+| Report | Function | Format | Content |
+|--------|----------|--------|---------|
+| **Fact Sheet** | `render_fact_sheet()` | HTML or Word | One-page overview with radar chart, summary table, and key findings |
+| **Summary Report** | `render_country_report()` | Word | Narrative with key findings, charts, and recommendations |
+| **Detailed Data Book** | `render_data_book()` | Word | Complete WHO 3-panel tables (Men \| Women \| Both Sexes) across all domains |
 
 ```{r reports, eval = FALSE}
 cfg <- steps_config(
@@ -528,14 +678,15 @@ cfg <- steps_config(
   age_max      = 69
 )
 
+# Fact sheet -- one-page overview (HTML for sharing, Word for print)
+render_fact_sheet(cfg, output_dir = "outputs", format = "html")
+render_fact_sheet(cfg, output_dir = "outputs", format = "word")
+
 # Summary report -- narrative with key findings, charts, recommendations
 render_country_report(cfg, output_dir = "outputs")
 
 # Data book -- detailed WHO 3-panel tables by domain
 render_data_book(cfg, output_dir = "outputs")
-
-# Fact sheet -- one-page overview of key indicators
-render_fact_sheet(cfg, output_dir = "outputs")
 ```
 
 Each function runs the entire pipeline internally (import, clean, analyse)
@@ -543,6 +694,12 @@ and renders an R Markdown template to a Word document.  The output files
 are saved in the specified directory.
 
 ### What each report contains
+
+The **Fact Sheet** is a single-page overview with a branded header,
+summary table of key indicators (noting any non-default thresholds),
+the radar chart, sex-stratified dashboard, and forest plot.  The HTML
+version is self-contained and ideal for web sharing; the Word version
+is print-ready.
 
 The **Summary Report** includes an executive summary table, narrative
 sections for each risk factor domain with inline prevalence figures,
@@ -585,6 +742,18 @@ out$plots
 Setting `render_reports = FALSE` skips the Word documents (useful for
 interactive exploration or when **rmarkdown** / Pandoc are not available).
 
+If your dataset uses non-standard column names, pass a filled mapping
+template:
+
+```{r pipeline-mapping, eval = FALSE}
+out <- run_steps_pipeline(
+  "my_data.dta",
+  country_name = "My Country",
+  survey_year  = 2024,
+  mapping_file = "my_mapping.xlsx"
+)
+```
+
 
 ## Working with real STEPS data
 
@@ -608,25 +777,21 @@ Before importing, ensure the file contains at minimum:
 
 ### Handling custom variable names
 
-If your dataset uses non-standard column names that are not auto-detected,
-override the mapping after detection:
+For datasets with a few non-standard names, override individual mappings
+after auto-detection:
 
 ```{r custom-names, eval = FALSE}
 raw  <- import_steps_data("my_steps_data.csv")
 cols <- detect_steps_columns(raw)
-
-# Suppose your glucose column is named "blood_sugar_fasting"
 cols$fasting_glucose <- "blood_sugar_fasting"
-
-# Suppose BP columns use a different naming pattern
 cols$sbp1 <- "systolic_bp_1"
-cols$dbp1 <- "diastolic_bp_1"
-
-# Then proceed as normal
-clean   <- clean_steps_data(raw, cols)
-designs <- setup_survey_design(clean)
-result  <- compute_all_indicators(designs)
+clean <- clean_steps_data(raw, cols)
 ```
+
+For datasets where many or most variables have non-standard names, use
+the column mapping template instead (see the "Column mapping for
+non-standard datasets" section above).  This is the recommended
+approach for real-world STEPS microdata.
 
 ### Adjusting age range
 
@@ -684,6 +849,36 @@ plots$overview
 ```
 
 
+## Interactive Shiny app
+
+For users who prefer a point-and-click interface, the package includes
+a full-featured Shiny application:
+
+```{r shiny, eval = FALSE}
+library(stepssurvey)
+run_app()
+```
+
+The app guides you through the same pipeline in seven tabs:
+
+1. **Upload** -- load data (or use built-in demo data), set country
+   name, survey year, age range, indicator thresholds, and optionally
+   upload a column mapping template
+2. **Clean** -- run WHO-standard cleaning with summary statistics
+3. **Quality** -- interactive data quality diagnostics (digit preference,
+   completeness, plausibility, sampling weights)
+4. **Design** -- set up the complex survey design with step-specific weights
+5. **Indicators** -- compute all NCD risk factor indicators with
+   tabulated results
+6. **Visualise** -- interactive plots including overview, sex dashboard,
+   age trends, forest plot, and radar chart
+7. **Reports** -- one-click generation of fact sheet (HTML/Word), country
+   report, and data book with download buttons
+
+A deployed version is available at
+<https://cfm-stepssurvey.share.connect.posit.cloud/>.
+
+
 ## WHO standard definitions used
 
 The package implements the following WHO STEPS definitions for all
@@ -697,13 +892,13 @@ derived indicators:
 | Heavy episodic drinking       | 6 or more standard drinks on a single occasion in past 30 days (A9)         |
 | Insufficient physical activity| Total MET-minutes per week < 600                                            |
 | Low fruit and vegetable intake| Combined < 5 servings per day                                               |
-| Overweight or obese           | BMI >= 25 kg/m^2^                                                           |
-| Obese                         | BMI >= 30 kg/m^2^                                                           |
+| Overweight or obese           | BMI >= 25 kg/m^2^ (configurable)                                            |
+| Obese                         | BMI >= 30 kg/m^2^ (configurable)                                            |
 | Central obesity               | Waist >= 102 cm (male) or >= 88 cm (female)                                |
-| Raised blood pressure         | Mean SBP >= 140 mmHg or mean DBP >= 90 mmHg or currently on BP medication   |
-| Raised fasting glucose        | Fasting blood glucose >= 7.0 mmol/L or currently on diabetes medication     |
-| Impaired fasting glucose      | Fasting blood glucose 6.1--6.9 mmol/L                                       |
-| Raised total cholesterol      | Total cholesterol >= 5.0 mmol/L                                             |
+| Raised blood pressure         | Mean SBP >= 140 or mean DBP >= 90 or on BP meds (configurable)              |
+| Raised fasting glucose        | Fasting glucose >= 7.0 mmol/L or on diabetes meds (configurable)            |
+| Impaired fasting glucose      | Fasting glucose 6.1--6.9 mmol/L (configurable)                              |
+| Raised total cholesterol      | Total cholesterol >= 5.0 mmol/L (configurable)                              |
 | Low HDL cholesterol           | HDL < 1.0 mmol/L (male) or < 1.3 mmol/L (female)                           |
 | Raised triglycerides          | Triglycerides >= 1.7 mmol/L                                                 |
 

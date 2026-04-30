@@ -279,6 +279,11 @@ the standard 140/90.
 inconsistent tobacco respondents (e.g. "I currently smoke" combined with
 "I never smoked in the past") are excluded from the tobacco denominator.
 
+**Column mapping.** Country datasets often use non-standard variable
+names.  The package's `read_column_mapping()` function and Excel mapping
+template were used to handle datasets where auto-detection required
+manual overrides.
+
 ## Running the validation yourself
 
 The full validation script is included in the package at
