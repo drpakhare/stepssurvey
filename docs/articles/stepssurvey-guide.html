@@ -118,13 +118,18 @@ and produces publication-ready tables, visualisations, and Word reports
 <li>Installing the package</li>
 <li>Understanding the data pipeline</li>
 <li>Importing and detecting STEPS variables (v3.1 and v3.2)</li>
+<li>Column mapping for non-standard datasets</li>
 <li>Cleaning and deriving WHO-standard indicators</li>
+<li>Configurable indicator thresholds</li>
+<li>Data quality diagnostics</li>
 <li>Setting up the complex survey design</li>
 <li>Computing weighted prevalence estimates</li>
-<li>Building tables and visualisations</li>
-<li>Generating Word reports (fact sheet, data book, country report)</li>
+<li>Building tables and visualisations (including forest plot and radar
+chart)</li>
+<li>Generating reports (fact sheet, data book, country report)</li>
 <li>Running the full pipeline in one call</li>
-<li>Working with your own data and customising the analysis</li>
+<li>Using the interactive Shiny app</li>
+<li>Working with your own data</li>
 </ol>
 </div>
 </div>
@@ -156,10 +161,15 @@ yourself for full control.</p>
        |
        v
   detect_steps_columns()       -- auto-detect v3.1/v3.2 codes
+  -- OR --
+  read_column_mapping()        -- use Excel mapping template
        |
        v
   clean_steps_data()           -- derive WHO indicators
-       |
+       |                          (configurable thresholds)
+       v
+  steps_data_quality()         -- digit preference, completeness,
+       |                          plausibility, weight diagnostics
        v
   setup_survey_design()        -- step-specific weights
        |
@@ -167,7 +177,8 @@ yourself for full control.</p>
   compute_all_indicators()     -- weighted prevalences &amp; means
        |
        +---&gt; build_steps_tables()      -&gt; summary flextables
-       +---&gt; build_steps_plots()       -&gt; ggplot2 charts
+       +---&gt; build_steps_plots()       -&gt; ggplot2 charts + forest + radar
+       +---&gt; render_fact_sheet()       -&gt; Fact Sheet (HTML or Word)
        +---&gt; render_country_report()   -&gt; Summary Report (Word)
        |
        v
@@ -489,13 +500,54 @@ before cleaning:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cols</span><span class="op">$</span><span class="va">fasting_glucose</span> <span class="op">&lt;-</span> <span class="st">"my_custom_glucose_variable"</span></span></code></pre></div>
 </div>
+<div class="section level3">
+<h3 id="column-mapping-for-non-standard-datasets">Column mapping for non-standard datasets<a class="anchor" aria-label="anchor" href="#column-mapping-for-non-standard-datasets"></a>
+</h3>
+<p>Many real-world STEPS datasets use country-specific variable names
+that auto-detection cannot resolve. The package includes an Excel
+mapping template that lets you specify the correspondence between your
+column names and the standard STEPS variables.</p>
+<p><strong>Step 1:</strong> Get the blank template:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Copy the template to your working directory</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"templates"</span>, <span class="st">"column_mapping_template.xlsx"</span>, package <span class="op">=</span> <span class="st">"stepssurvey"</span><span class="op">)</span>,</span>
+<span>  <span class="st">"my_mapping.xlsx"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The template has two sheets: <strong>Instructions</strong> with usage
+guidance, and <strong>Column Mapping</strong> with 110 standard
+variables organised by domain (Demographics, Tobacco, Alcohol, Diet,
+Physical Activity, Anthropometry, Blood Pressure, Biochemical, History
+&amp; Treatment). Required variables are highlighted in red; optional
+ones in yellow.</p>
+<p><strong>Step 2:</strong> Open the template in Excel, and for each
+variable in column A, type your dataset’s column name in column C (“Your
+Column Name”). Leave blank any variables your dataset does not have.</p>
+<p><strong>Step 3:</strong> Read the filled template:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cols</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_column_mapping.html">read_column_mapping</a></span><span class="op">(</span><span class="st">"my_mapping.xlsx"</span>, data <span class="op">=</span> <span class="va">raw</span><span class="op">)</span></span></code></pre></div>
+<p>The <code>data</code> argument is optional but recommended – it
+validates that every mapped column actually exists in your dataset and
+warns about typos. The returned <code>cols</code> list is identical in
+structure to what <code><a href="../reference/detect_steps_columns.html">detect_steps_columns()</a></code> produces, so you
+can pass it directly to <code><a href="../reference/clean_steps_data.html">clean_steps_data()</a></code>.</p>
+<p>The <code><a href="../reference/run_steps_pipeline.html">run_steps_pipeline()</a></code> function also accepts a
+<code>mapping_file</code> parameter:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_steps_pipeline.html">run_steps_pipeline</a></span><span class="op">(</span></span>
+<span>  <span class="st">"my_data.dta"</span>,</span>
+<span>  country_name <span class="op">=</span> <span class="st">"My Country"</span>,</span>
+<span>  survey_year  <span class="op">=</span> <span class="fl">2024</span>,</span>
+<span>  mapping_file <span class="op">=</span> <span class="st">"my_mapping.xlsx"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="step-3-clean-and-derive-indicators">Step 3: Clean and derive indicators<a class="anchor" aria-label="anchor" href="#step-3-clean-and-derive-indicators"></a>
 </h2>
 <p>The <code><a href="../reference/clean_steps_data.html">clean_steps_data()</a></code> function performs all
 WHO-recommended data processing in a single call:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">clean</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clean_steps_data.html">clean_steps_data</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">cols</span>, age_min <span class="op">=</span> <span class="fl">18</span>, age_max <span class="op">=</span> <span class="fl">69</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   ⚠ No Step 2 weight found - copying Step 1 weight</span></span>
 <span><span class="co">#&gt;   ⚠ No Step 3 weight found - copying Step 1 weight</span></span>
@@ -551,8 +603,28 @@ medication)</li>
 <li>Flags low HDL cholesterol (sex-specific thresholds)</li>
 <li>Flags raised triglycerides (&gt;= 1.7 mmol/L)</li>
 </ul>
+</div>
+<div class="section level3">
+<h3 id="configurable-indicator-thresholds">Configurable indicator thresholds<a class="anchor" aria-label="anchor" href="#configurable-indicator-thresholds"></a>
+</h3>
+<p>All indicator thresholds can be customised. This is essential when a
+country uses non-standard definitions (e.g. Mongolia uses 130/80 mmHg
+for raised blood pressure instead of the WHO default 140/90):</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">clean</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clean_steps_data.html">clean_steps_data</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">cols</span>,</span>
+<span>  bp_sbp_threshold          <span class="op">=</span> <span class="fl">130</span>,   <span class="co"># SBP threshold (default 140)</span></span>
+<span>  bp_dbp_threshold          <span class="op">=</span> <span class="fl">80</span>,    <span class="co"># DBP threshold (default 90)</span></span>
+<span>  bmi_overweight             <span class="op">=</span> <span class="fl">25.0</span>,  <span class="co"># BMI overweight (default 25)</span></span>
+<span>  bmi_obese                  <span class="op">=</span> <span class="fl">30.0</span>,  <span class="co"># BMI obese (default 30)</span></span>
+<span>  glucose_threshold          <span class="op">=</span> <span class="fl">7.0</span>,   <span class="co"># Raised glucose mmol/L (default 7.0)</span></span>
+<span>  glucose_impaired_threshold <span class="op">=</span> <span class="fl">6.1</span>,   <span class="co"># Impaired glucose mmol/L (default 6.1)</span></span>
+<span>  chol_threshold             <span class="op">=</span> <span class="fl">5.0</span>    <span class="co"># Raised cholesterol mmol/L (default 5.0)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The same thresholds are available in <code><a href="../reference/steps_config.html">steps_config()</a></code> and
+propagate through <code><a href="../reference/run_steps_pipeline.html">run_steps_pipeline()</a></code> and the Shiny app
+interface.</p>
 <p>You can inspect the derived variables:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># BMI categories</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">clean</span><span class="op">$</span><span class="va">bmi_category</span>, <span class="va">clean</span><span class="op">$</span><span class="va">sex</span><span class="op">)</span></span>
 <span><span class="co">#&gt;              </span></span>
@@ -578,6 +650,37 @@ medication)</li>
 </div>
 </div>
 <div class="section level2">
+<h2 id="step-3b-data-quality-diagnostics">Step 3b: Data quality diagnostics<a class="anchor" aria-label="anchor" href="#step-3b-data-quality-diagnostics"></a>
+</h2>
+<p>Before proceeding with analysis, the package provides a comprehensive
+data quality assessment. The <code><a href="../reference/steps_data_quality.html">steps_data_quality()</a></code> function
+checks four dimensions:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">quality</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/steps_data_quality.html">steps_data_quality</a></span><span class="op">(</span><span class="va">clean</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">quality</span><span class="op">)</span></span>
+<span><span class="co"># [1] "digit_preference" "completeness" "plausibility" "weights"</span></span></code></pre></div>
+<p><strong>Digit preference</strong> detects heaping on terminal digits
+0 and 5 in blood pressure and anthropometric measurements – a common
+data collection artefact:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_digit_preference.html">plot_digit_preference</a></span><span class="op">(</span><span class="va">quality</span>, measure <span class="op">=</span> <span class="st">"sbp"</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Completeness</strong> reports the percentage of non-missing
+values for every key variable, helping identify modules that may have
+been skipped.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_completeness.html">plot_completeness</a></span><span class="op">(</span><span class="va">quality</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Plausibility</strong> flags values outside physiologically
+reasonable ranges (e.g. systolic BP &gt; 300 mmHg, height &lt; 100
+cm).</p>
+<p><strong>Sampling weights</strong> shows the distribution and
+coefficient of variation of each step-specific weight, helping detect
+extreme weights that might destabilise survey estimates:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_weights.html">plot_weights</a></span><span class="op">(</span><span class="va">quality</span><span class="op">)</span></span></code></pre></div>
+<p>In the Shiny app, the <strong>Quality</strong> tab presents all four
+diagnostics interactively with summary value boxes.</p>
+</div>
+<div class="section level2">
 <h2 id="step-4-set-up-the-survey-design">Step 4: Set up the survey design<a class="anchor" aria-label="anchor" href="#step-4-set-up-the-survey-design"></a>
 </h2>
 <p>STEPS surveys use complex sampling designs. Ignoring the design leads
@@ -585,7 +688,7 @@ to biased estimates and incorrect confidence intervals. The
 <code><a href="../reference/setup_survey_design.html">setup_survey_design()</a></code> function creates a
 <code><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="external-link">survey::svydesign</a></code> object that accounts for weights,
 stratification, and clustering:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">designs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setup_survey_design.html">setup_survey_design</a></span><span class="op">(</span><span class="va">clean</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   Setting up survey designs (per WHO STEPS Step)...</span></span>
 <span><span class="co">#&gt;   Design: Stratified cluster sampling with weights</span></span>
@@ -626,7 +729,7 @@ the package provides.</p>
 <div class="section level3">
 <h3 id="all-indicators-at-once">All indicators at once<a class="anchor" aria-label="anchor" href="#all-indicators-at-once"></a>
 </h3>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_all_indicators.html">compute_all_indicators</a></span><span class="op">(</span><span class="va">designs</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Computing tobacco indicators...</span></span>
 <span><span class="co">#&gt;   Computing tobacco indicators...</span></span>
@@ -650,7 +753,7 @@ estimates (total, by sex, by age group)</li>
 <code>result$key_indicators</code> – a tidy data frame of headline
 prevalences</li>
 </ul>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span><span class="op">$</span><span class="va">key_indicators</span></span>
 <span><span class="co">#&gt;                                         domain</span></span>
 <span><span class="co">#&gt; as.numeric(current_tobacco)            Tobacco</span></span>
@@ -681,7 +784,7 @@ prevalences</li>
 <h3 id="domain-specific-functions">Domain-specific functions<a class="anchor" aria-label="anchor" href="#domain-specific-functions"></a>
 </h3>
 <p>For more control, call each domain function separately:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tob</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_tobacco_indicators.html">compute_tobacco_indicators</a></span><span class="op">(</span><span class="va">designs</span><span class="op">$</span><span class="va">step1</span><span class="op">)</span></span>
 <span><span class="va">alc</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_alcohol_indicators.html">compute_alcohol_indicators</a></span><span class="op">(</span><span class="va">designs</span><span class="op">$</span><span class="va">step1</span><span class="op">)</span></span>
 <span><span class="va">diet</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_diet_pa_indicators.html">compute_diet_pa_indicators</a></span><span class="op">(</span><span class="va">designs</span><span class="op">$</span><span class="va">step1</span><span class="op">)</span></span>
@@ -690,7 +793,7 @@ prevalences</li>
 <span><span class="va">bio</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_biochemical_indicators.html">compute_biochemical_indicators</a></span><span class="op">(</span><span class="va">designs</span><span class="op">$</span><span class="va">step3</span><span class="op">)</span></span></code></pre></div>
 <p>Each returns a named list. For example, the tobacco module
 returns:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tob</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_tobacco_indicators.html">compute_tobacco_indicators</a></span><span class="op">(</span><span class="va">designs</span><span class="op">$</span><span class="va">step1</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   Computing tobacco indicators...</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">tob</span><span class="op">)</span></span>
@@ -714,7 +817,7 @@ returns:</p>
 </h3>
 <p>The package exports two low-level helpers for any weighted estimate
 you need:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Weighted proportion with 95% CI (raised_bp is a Step 2 variable)</span></span>
 <span><span class="fu"><a href="../reference/svyprop.html">svyprop</a></span><span class="op">(</span><span class="op">~</span><span class="va">raised_bp</span>, <span class="va">designs</span><span class="op">$</span><span class="va">step2</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                estimate    lower    upper       se</span></span>
@@ -742,7 +845,7 @@ purposes.</p>
 <div class="section level3">
 <h3 id="summary-tables-both-sexes-only">Summary tables (Both Sexes only)<a class="anchor" aria-label="anchor" href="#summary-tables-both-sexes-only"></a>
 </h3>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_steps_tables.html">build_steps_tables</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">results</span><span class="op">)</span></span>
 <span><span class="co">#&gt; ✓ Generated 6 tables.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">tables</span><span class="op">)</span></span>
@@ -752,7 +855,7 @@ purposes.</p>
 STEPS branding (dark blue headers, formatted confidence intervals).
 These tables show estimates by age group for Both Sexes combined – ideal
 for summary reports and quick reference.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Display the raised blood pressure table</span></span>
 <span><span class="va">tables</span><span class="op">$</span><span class="va">raised_bp</span></span>
 <span></span>
@@ -765,7 +868,7 @@ for summary reports and quick reference.</p>
 <p>For the full WHO STEPS data book format, use the detailed table
 engine. This produces ~60 tables in the standard 3-panel layout (Age
 Group | Men | Women | Both Sexes):</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Step 1: Compute raw results from the table registry</span></span>
 <span><span class="va">computed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_all_tables.html">compute_all_tables</a></span><span class="op">(</span><span class="va">designs</span><span class="op">)</span></span>
 <span></span>
@@ -818,7 +921,7 @@ Group | Men | Women | Both Sexes):</p>
 </tbody>
 </table>
 <p>You can access individual tables by ID or filter by section:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Browse the full table registry</span></span>
 <span><span class="va">registry</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/steps_table_registry.html">steps_table_registry</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -835,7 +938,7 @@ Group | Men | Women | Both Sexes):</p>
 <div class="section level2">
 <h2 id="step-7-create-visualisations">Step 7: Create visualisations<a class="anchor" aria-label="anchor" href="#step-7-create-visualisations"></a>
 </h2>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plots</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_steps_plots.html">build_steps_plots</a></span><span class="op">(</span></span>
 <span>  indicators    <span class="op">=</span> <span class="va">result</span><span class="op">$</span><span class="va">results</span>,</span>
 <span>  key_indicators <span class="op">=</span> <span class="va">result</span><span class="op">$</span><span class="va">key_indicators</span>,</span>
@@ -851,7 +954,7 @@ Group | Men | Women | Both Sexes):</p>
 </h3>
 <p>The overview plot shows all key indicators as a horizontal bar chart
 with 95% confidence intervals, sorted by prevalence:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plots</span><span class="op">$</span><span class="va">overview</span></span>
 <span><span class="co">#&gt; `height` was translated to `width`.</span></span></code></pre></div>
 <p><img src="stepssurvey-guide_files/figure-html/overview-1.png" class="r-plt" alt="" width="768" style="display: block; margin: auto;"></p>
@@ -861,7 +964,7 @@ with 95% confidence intervals, sorted by prevalence:</p>
 </h3>
 <p>If multiple sex-stratified indicators are available, the package
 creates a 2 x 2 dashboard using <strong>patchwork</strong>:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plots</span><span class="op">$</span><span class="va">sex_dashboard</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -869,27 +972,50 @@ creates a 2 x 2 dashboard using <strong>patchwork</strong>:</p>
 </h3>
 <p>Age trend plots show how each risk factor varies across the WHO
 standard age groups, with shaded confidence bands:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plots</span><span class="op">$</span><span class="va">bp_by_age</span></span></code></pre></div>
 <p><img src="stepssurvey-guide_files/figure-html/age-trend-1.png" class="r-plt" alt="" width="768" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level3">
+<h3 id="forest-plot">Forest plot<a class="anchor" aria-label="anchor" href="#forest-plot"></a>
+</h3>
+<p>The forest plot shows all key indicators as horizontal point-and-CI
+estimates, colour-coded by STEPS domain:</p>
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">plots</span><span class="op">$</span><span class="va">forest</span></span>
+<span><span class="co"># Or build standalone:</span></span>
+<span><span class="fu"><a href="../reference/build_forest_plot.html">build_forest_plot</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">key_indicators</span>, <span class="st">"Exampleland"</span>, <span class="fl">2024</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="risk-profile-radar-chart">Risk profile radar chart<a class="anchor" aria-label="anchor" href="#risk-profile-radar-chart"></a>
+</h3>
+<p>The radar (spider) chart provides a visual fingerprint of the
+country’s NCD risk factor profile, making it easy to spot which domains
+are most affected:</p>
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">plots</span><span class="op">$</span><span class="va">radar</span></span>
+<span><span class="co"># Or build standalone:</span></span>
+<span><span class="fu"><a href="../reference/build_radar_plot.html">build_radar_plot</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">key_indicators</span>, <span class="st">"Exampleland"</span>, <span class="fl">2024</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
 <h3 id="saving-plots">Saving plots<a class="anchor" aria-label="anchor" href="#saving-plots"></a>
 </h3>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/save_steps_plots.html">save_steps_plots</a></span><span class="op">(</span><span class="va">plots</span>, output_dir <span class="op">=</span> <span class="st">"outputs/figures"</span><span class="op">)</span></span>
 <span><span class="co"># Creates:</span></span>
 <span><span class="co">#   outputs/figures/01_overview_indicators.png</span></span>
 <span><span class="co">#   outputs/figures/02_by_sex_dashboard.png</span></span>
 <span><span class="co">#   outputs/figures/03_bp_by_age.png</span></span>
-<span><span class="co">#   outputs/figures/04_obesity_by_age.png</span></span></code></pre></div>
+<span><span class="co">#   outputs/figures/04_obesity_by_age.png</span></span>
+<span><span class="co">#   outputs/figures/05_forest_plot.png</span></span>
+<span><span class="co">#   outputs/figures/06_radar_plot.png</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="who-steps-colour-palette-and-theme">WHO STEPS colour palette and theme<a class="anchor" aria-label="anchor" href="#who-steps-colour-palette-and-theme"></a>
 </h3>
 <p>The package uses a consistent visual identity. You can apply the same
 styling to your own ggplot2 plots:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/steps_colors.html">steps_colors</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">pal</span><span class="op">)</span></span>
 <span><span class="co">#&gt; List of 9</span></span>
@@ -916,33 +1042,44 @@ styling to your own ggplot2 plots:</p>
 <div class="section level2">
 <h2 id="step-8-generate-word-reports">Step 8: Generate Word reports<a class="anchor" aria-label="anchor" href="#step-8-generate-word-reports"></a>
 </h2>
-<p>The package produces two complementary reports:</p>
-<table class="table">
+<p>The package produces three complementary reports:</p>
+<table style="width:100%;" class="table">
 <colgroup>
-<col width="29%">
-<col width="37%">
-<col width="33%">
+<col width="22%">
+<col width="28%">
+<col width="22%">
+<col width="25%">
 </colgroup>
 <thead><tr class="header">
 <th>Report</th>
 <th>Function</th>
+<th>Format</th>
 <th>Content</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td><strong>Summary Report</strong></td>
-<td><code><a href="../reference/render_country_report.html">render_country_report()</a></code></td>
-<td>Narrative with key findings, charts, and recommendations</td>
+<td><strong>Fact Sheet</strong></td>
+<td><code><a href="../reference/render_fact_sheet.html">render_fact_sheet()</a></code></td>
+<td>HTML or Word</td>
+<td>One-page overview with radar chart, summary table, and key
+findings</td>
 </tr>
 <tr class="even">
+<td><strong>Summary Report</strong></td>
+<td><code><a href="../reference/render_country_report.html">render_country_report()</a></code></td>
+<td>Word</td>
+<td>Narrative with key findings, charts, and recommendations</td>
+</tr>
+<tr class="odd">
 <td><strong>Detailed Data Book</strong></td>
 <td><code><a href="../reference/render_data_book.html">render_data_book()</a></code></td>
+<td>Word</td>
 <td>Complete WHO 3-panel tables (Men | Women | Both Sexes) across all
 domains</td>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/steps_config.html">steps_config</a></span><span class="op">(</span></span>
 <span>  data_path    <span class="op">=</span> <span class="st">"data/raw/steps_survey_2024.csv"</span>,</span>
 <span>  country_name <span class="op">=</span> <span class="st">"Exampleland"</span>,</span>
@@ -951,20 +1088,26 @@ domains</td>
 <span>  age_max      <span class="op">=</span> <span class="fl">69</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Fact sheet -- one-page overview (HTML for sharing, Word for print)</span></span>
+<span><span class="fu"><a href="../reference/render_fact_sheet.html">render_fact_sheet</a></span><span class="op">(</span><span class="va">cfg</span>, output_dir <span class="op">=</span> <span class="st">"outputs"</span>, format <span class="op">=</span> <span class="st">"html"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/render_fact_sheet.html">render_fact_sheet</a></span><span class="op">(</span><span class="va">cfg</span>, output_dir <span class="op">=</span> <span class="st">"outputs"</span>, format <span class="op">=</span> <span class="st">"word"</span><span class="op">)</span></span>
+<span></span>
 <span><span class="co"># Summary report -- narrative with key findings, charts, recommendations</span></span>
 <span><span class="fu"><a href="../reference/render_country_report.html">render_country_report</a></span><span class="op">(</span><span class="va">cfg</span>, output_dir <span class="op">=</span> <span class="st">"outputs"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Data book -- detailed WHO 3-panel tables by domain</span></span>
-<span><span class="fu"><a href="../reference/render_data_book.html">render_data_book</a></span><span class="op">(</span><span class="va">cfg</span>, output_dir <span class="op">=</span> <span class="st">"outputs"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Fact sheet -- one-page overview of key indicators</span></span>
-<span><span class="fu"><a href="../reference/render_fact_sheet.html">render_fact_sheet</a></span><span class="op">(</span><span class="va">cfg</span>, output_dir <span class="op">=</span> <span class="st">"outputs"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/render_data_book.html">render_data_book</a></span><span class="op">(</span><span class="va">cfg</span>, output_dir <span class="op">=</span> <span class="st">"outputs"</span><span class="op">)</span></span></code></pre></div>
 <p>Each function runs the entire pipeline internally (import, clean,
 analyse) and renders an R Markdown template to a Word document. The
 output files are saved in the specified directory.</p>
 <div class="section level3">
 <h3 id="what-each-report-contains">What each report contains<a class="anchor" aria-label="anchor" href="#what-each-report-contains"></a>
 </h3>
+<p>The <strong>Fact Sheet</strong> is a single-page overview with a
+branded header, summary table of key indicators (noting any non-default
+thresholds), the radar chart, sex-stratified dashboard, and forest plot.
+The HTML version is self-contained and ideal for web sharing; the Word
+version is print-ready.</p>
 <p>The <strong>Summary Report</strong> includes an executive summary
 table, narrative sections for each risk factor domain with inline
 prevalence figures, embedded charts (overview indicators, by-sex
@@ -983,7 +1126,7 @@ Factors.</p>
 <p>For the fastest path from raw data to results,
 <code><a href="../reference/run_steps_pipeline.html">run_steps_pipeline()</a></code> chains every step and returns all
 intermediate objects:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_steps_pipeline.html">run_steps_pipeline</a></span><span class="op">(</span></span>
 <span>  data_path      <span class="op">=</span> <span class="st">"data/raw/steps_survey_2024.csv"</span>,</span>
 <span>  country_name   <span class="op">=</span> <span class="st">"Exampleland"</span>,</span>
@@ -1005,6 +1148,15 @@ intermediate objects:</p>
 <p>Setting <code>render_reports = FALSE</code> skips the Word documents
 (useful for interactive exploration or when <strong>rmarkdown</strong> /
 Pandoc are not available).</p>
+<p>If your dataset uses non-standard column names, pass a filled mapping
+template:</p>
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_steps_pipeline.html">run_steps_pipeline</a></span><span class="op">(</span></span>
+<span>  <span class="st">"my_data.dta"</span>,</span>
+<span>  country_name <span class="op">=</span> <span class="st">"My Country"</span>,</span>
+<span>  survey_year  <span class="op">=</span> <span class="fl">2024</span>,</span>
+<span>  mapping_file <span class="op">=</span> <span class="st">"my_mapping.xlsx"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="working-with-real-steps-data">Working with real STEPS data<a class="anchor" aria-label="anchor" href="#working-with-real-steps-data"></a>
@@ -1056,23 +1208,18 @@ weights are set to 1)</li>
 <div class="section level3">
 <h3 id="handling-custom-variable-names">Handling custom variable names<a class="anchor" aria-label="anchor" href="#handling-custom-variable-names"></a>
 </h3>
-<p>If your dataset uses non-standard column names that are not
-auto-detected, override the mapping after detection:</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<p>For datasets with a few non-standard names, override individual
+mappings after auto-detection:</p>
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">raw</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/import_steps_data.html">import_steps_data</a></span><span class="op">(</span><span class="st">"my_steps_data.csv"</span><span class="op">)</span></span>
 <span><span class="va">cols</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_steps_columns.html">detect_steps_columns</a></span><span class="op">(</span><span class="va">raw</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Suppose your glucose column is named "blood_sugar_fasting"</span></span>
 <span><span class="va">cols</span><span class="op">$</span><span class="va">fasting_glucose</span> <span class="op">&lt;-</span> <span class="st">"blood_sugar_fasting"</span></span>
-<span></span>
-<span><span class="co"># Suppose BP columns use a different naming pattern</span></span>
 <span><span class="va">cols</span><span class="op">$</span><span class="va">sbp1</span> <span class="op">&lt;-</span> <span class="st">"systolic_bp_1"</span></span>
-<span><span class="va">cols</span><span class="op">$</span><span class="va">dbp1</span> <span class="op">&lt;-</span> <span class="st">"diastolic_bp_1"</span></span>
-<span></span>
-<span><span class="co"># Then proceed as normal</span></span>
-<span><span class="va">clean</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clean_steps_data.html">clean_steps_data</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">cols</span><span class="op">)</span></span>
-<span><span class="va">designs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setup_survey_design.html">setup_survey_design</a></span><span class="op">(</span><span class="va">clean</span><span class="op">)</span></span>
-<span><span class="va">result</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_all_indicators.html">compute_all_indicators</a></span><span class="op">(</span><span class="va">designs</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">clean</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clean_steps_data.html">clean_steps_data</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">cols</span><span class="op">)</span></span></code></pre></div>
+<p>For datasets where many or most variables have non-standard names,
+use the column mapping template instead (see the “Column mapping for
+non-standard datasets” section above). This is the recommended approach
+for real-world STEPS microdata.</p>
 </div>
 <div class="section level3">
 <h3 id="adjusting-age-range">Adjusting age range<a class="anchor" aria-label="anchor" href="#adjusting-age-range"></a>
@@ -1080,7 +1227,7 @@ auto-detected, override the mapping after detection:</p>
 <p>Some STEPS surveys target populations outside the standard 18–69
 range. Adjust with the <code>age_min</code> and <code>age_max</code>
 parameters:</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Include up to age 79</span></span>
 <span><span class="va">clean</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clean_steps_data.html">clean_steps_data</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">cols</span>, age_min <span class="op">=</span> <span class="fl">18</span>, age_max <span class="op">=</span> <span class="fl">79</span><span class="op">)</span></span></code></pre></div>
 <p>Note that changing the upper age limit adds a wider final age group
@@ -1092,7 +1239,7 @@ parameters:</p>
 </h2>
 <p>This section walks through a full analysis using simulated data,
 showing every step from generation to output.</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/drpakhare/stepssurvey" class="external-link">stepssurvey</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 1. Generate a realistic test dataset</span></span>
@@ -1332,6 +1479,41 @@ showing every step from generation to output.</p>
 <p><img src="stepssurvey-guide_files/figure-html/worked-1.png" class="r-plt" alt="" width="768" style="display: block; margin: auto;"></p>
 </div>
 <div class="section level2">
+<h2 id="interactive-shiny-app">Interactive Shiny app<a class="anchor" aria-label="anchor" href="#interactive-shiny-app"></a>
+</h2>
+<p>For users who prefer a point-and-click interface, the package
+includes a full-featured Shiny application:</p>
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/drpakhare/stepssurvey" class="external-link">stepssurvey</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/run_app.html">run_app</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>The app guides you through the same pipeline in seven tabs:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Upload</strong> – load data (or use built-in demo data), set
+country name, survey year, age range, indicator thresholds, and
+optionally upload a column mapping template</li>
+<li>
+<strong>Clean</strong> – run WHO-standard cleaning with summary
+statistics</li>
+<li>
+<strong>Quality</strong> – interactive data quality diagnostics
+(digit preference, completeness, plausibility, sampling weights)</li>
+<li>
+<strong>Design</strong> – set up the complex survey design with
+step-specific weights</li>
+<li>
+<strong>Indicators</strong> – compute all NCD risk factor indicators
+with tabulated results</li>
+<li>
+<strong>Visualise</strong> – interactive plots including overview,
+sex dashboard, age trends, forest plot, and radar chart</li>
+<li>
+<strong>Reports</strong> – one-click generation of fact sheet
+(HTML/Word), country report, and data book with download buttons</li>
+</ol>
+<p>A deployed version is available at <a href="https://cfm-stepssurvey.share.connect.posit.cloud/" class="external-link uri">https://cfm-stepssurvey.share.connect.posit.cloud/</a>.</p>
+</div>
+<div class="section level2">
 <h2 id="who-standard-definitions-used">WHO standard definitions used<a class="anchor" aria-label="anchor" href="#who-standard-definitions-used"></a>
 </h2>
 <p>The package implements the following WHO STEPS definitions for all
@@ -1373,13 +1555,11 @@ derived indicators:</p>
 </tr>
 <tr class="odd">
 <td>Overweight or obese</td>
-<td>BMI &gt;= 25 kg/m<sup>2</sup>
-</td>
+<td>BMI &gt;= 25 kg/m<sup>2</sup> (configurable)</td>
 </tr>
 <tr class="even">
 <td>Obese</td>
-<td>BMI &gt;= 30 kg/m<sup>2</sup>
-</td>
+<td>BMI &gt;= 30 kg/m<sup>2</sup> (configurable)</td>
 </tr>
 <tr class="odd">
 <td>Central obesity</td>
@@ -1387,21 +1567,21 @@ derived indicators:</p>
 </tr>
 <tr class="even">
 <td>Raised blood pressure</td>
-<td>Mean SBP &gt;= 140 mmHg or mean DBP &gt;= 90 mmHg or currently on BP
-medication</td>
+<td>Mean SBP &gt;= 140 or mean DBP &gt;= 90 or on BP meds
+(configurable)</td>
 </tr>
 <tr class="odd">
 <td>Raised fasting glucose</td>
-<td>Fasting blood glucose &gt;= 7.0 mmol/L or currently on diabetes
-medication</td>
+<td>Fasting glucose &gt;= 7.0 mmol/L or on diabetes meds
+(configurable)</td>
 </tr>
 <tr class="even">
 <td>Impaired fasting glucose</td>
-<td>Fasting blood glucose 6.1–6.9 mmol/L</td>
+<td>Fasting glucose 6.1–6.9 mmol/L (configurable)</td>
 </tr>
 <tr class="odd">
 <td>Raised total cholesterol</td>
-<td>Total cholesterol &gt;= 5.0 mmol/L</td>
+<td>Total cholesterol &gt;= 5.0 mmol/L (configurable)</td>
 </tr>
 <tr class="even">
 <td>Low HDL cholesterol</td>
@@ -1434,7 +1614,7 @@ Use the <code><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="ext
 <code><a href="../reference/svyprop.html">svyprop()</a></code> or <code><a href="../reference/svymn.html">svymn()</a></code> (or any
 <strong>survey</strong> package function) for custom analyses.</p>
 <p><strong>How do I cite this package?</strong></p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"stepssurvey"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -1454,7 +1634,7 @@ GitHub</a></li>
 <div class="section level2">
 <h2 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
 </h2>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.5.1 (2025-06-13)</span></span>
 <span><span class="co">#&gt; Platform: aarch64-apple-darwin20</span></span>
