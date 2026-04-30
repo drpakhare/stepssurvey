@@ -4,6 +4,7 @@ Version: 0.1.0
 Authors@R: c(
     person("Abhijit", "Pakhare", email = "drpakhare@gmail.com",
            role = c("aut", "cre")),
+    person("Ankur", "Joshi", role = "aut"),
     person("WHO STEPS R Pipeline Contributors", role = "ctb")
   )
 Description: A complete analysis pipeline for the WHO STEPwise Approach to

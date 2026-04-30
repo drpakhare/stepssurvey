@@ -54,7 +54,7 @@ build_steps_plots <- function(indicators, key_indicators, country_name, survey_y
   plots$overview <- ggplot2::ggplot(overview_df,
       ggplot2::aes(x = estimate, y = indicator, fill = domain)) +
     ggplot2::geom_col(width = 0.6, alpha = 0.9) +
-    ggplot2::geom_errorbarh(ggplot2::aes(xmin = lower, xmax = upper), height = 0.25, color = "grey40") +
+    ggplot2::geom_errorbar(ggplot2::aes(xmin = lower, xmax = upper), height = 0.25, color = "grey40", orientation = "y") +
     ggplot2::geom_text(ggplot2::aes(label = paste0(round(estimate, 1), "%")),
               hjust = -0.15, size = 3.2, color = "grey20") +
     ggplot2::scale_x_continuous(limits = c(0, 105), labels = function(x) paste0(x, "%")) +
@@ -208,8 +208,8 @@ build_forest_plot <- function(key_indicators, country_name, survey_year) {
     ggplot2::geom_vline(xintercept = c(10, 20, 30, 40, 50), linetype = "dotted",
                         colour = "grey80", linewidth = 0.3) +
     ggplot2::geom_point(size = 3.5) +
-    ggplot2::geom_errorbarh(ggplot2::aes(xmin = lower, xmax = upper),
-                            height = 0.3, linewidth = 0.7) +
+    ggplot2::geom_errorbar(ggplot2::aes(xmin = lower, xmax = upper),
+                            height = 0.3, linewidth = 0.7, orientation = "y") +
     ggplot2::geom_text(ggplot2::aes(label = sprintf("%.1f%%", estimate)),
                        hjust = -0.3, size = 3, colour = "grey30") +
     ggplot2::scale_x_continuous(limits = c(0, 100),
