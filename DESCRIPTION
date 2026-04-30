@@ -42,6 +42,7 @@ Imports:
     tools
 Suggests:
     knitr,
+    remotes,
     testthat (>= 3.0.0),
     withr
 VignetteBuilder: knitr
