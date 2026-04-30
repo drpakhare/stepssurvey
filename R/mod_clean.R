@@ -55,7 +55,14 @@ mod_clean_server <- function(id, upload_out) {
       shiny::req(upload_out$raw(), upload_out$cols())
       cfg <- upload_out$config()
       clean_steps_data(upload_out$raw(), upload_out$cols(),
-                       age_min = cfg$age_min, age_max = cfg$age_max)
+                       age_min = cfg$age_min, age_max = cfg$age_max,
+                       bp_sbp_threshold = cfg$bp_sbp_threshold,
+                       bp_dbp_threshold = cfg$bp_dbp_threshold,
+                       bmi_overweight = cfg$bmi_overweight,
+                       bmi_obese = cfg$bmi_obese,
+                       glucose_threshold = cfg$glucose_threshold,
+                       glucose_impaired_threshold = cfg$glucose_impaired_threshold,
+                       chol_threshold = cfg$chol_threshold)
     })
 
     # -- Summary value boxes ----------------------------------------------------

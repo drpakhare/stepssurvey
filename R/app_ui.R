@@ -35,30 +35,37 @@ app_ui <- function() {
       mod_clean_ui("clean")
     ),
 
-    # -- Tab 3: Survey Design ---
+    # -- Tab 3: Data Quality ---
     bslib::nav_panel(
-      title = "3. Design",
+      title = "3. Quality",
+      icon  = shiny::icon("stethoscope"),
+      mod_quality_ui("quality")
+    ),
+
+    # -- Tab 4: Survey Design ---
+    bslib::nav_panel(
+      title = "4. Design",
       icon  = shiny::icon("scale-balanced"),
       mod_design_ui("design")
     ),
 
-    # -- Tab 4: Indicators ---
+    # -- Tab 5: Indicators ---
     bslib::nav_panel(
-      title = "4. Indicators",
+      title = "5. Indicators",
       icon  = shiny::icon("chart-bar"),
       mod_indicators_ui("indicators")
     ),
 
-    # -- Tab 5: Visualisations ---
+    # -- Tab 6: Visualisations ---
     bslib::nav_panel(
-      title = "5. Visualise",
+      title = "6. Visualise",
       icon  = shiny::icon("chart-line"),
       mod_visualise_ui("visualise")
     ),
 
-    # -- Tab 6: Reports ---
+    # -- Tab 7: Reports ---
     bslib::nav_panel(
-      title = "6. Reports",
+      title = "7. Reports",
       icon  = shiny::icon("file-word"),
       mod_reports_ui("reports")
     )

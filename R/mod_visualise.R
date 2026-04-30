@@ -36,6 +36,8 @@ mod_visualise_ui <- function(id) {
       title = "STEPS Visualizations",
       id = ns("plot_tabs"),
       bslib::nav_panel("Overview", shiny::plotOutput(ns("plot_overview"), height = "600px")),
+      bslib::nav_panel("Forest plot", shiny::plotOutput(ns("plot_forest"), height = "600px")),
+      bslib::nav_panel("Risk profile", shiny::plotOutput(ns("plot_radar"), height = "600px")),
       bslib::nav_panel("Tobacco by Sex", shiny::plotOutput(ns("plot_tobacco_sex"), height = "600px")),
       bslib::nav_panel("BP by Sex", shiny::plotOutput(ns("plot_bp_sex"), height = "600px")),
       bslib::nav_panel("Obesity by Sex", shiny::plotOutput(ns("plot_obesity_sex"), height = "600px")),
@@ -96,6 +98,8 @@ mod_visualise_server <- function(id, results_out, upload_out) {
 
     # -- Render individual plots ------------------------------------------------
     output$plot_overview      <- safe_render_plot("overview", "Overview plot")
+    output$plot_forest        <- safe_render_plot("forest", "Forest plot")
+    output$plot_radar         <- safe_render_plot("radar", "Risk profile radar")
     output$plot_tobacco_sex   <- safe_render_plot("tobacco_by_sex", "Tobacco by sex plot")
     output$plot_bp_sex        <- safe_render_plot("bp_by_sex", "BP by sex plot")
     output$plot_obesity_sex   <- safe_render_plot("obesity_by_sex", "Obesity by sex plot")
@@ -122,7 +126,8 @@ mod_visualise_server <- function(id, results_out, upload_out) {
 
         # Save each plot as PNG
         plot_names <- c(
-          "overview", "tobacco_by_sex", "bp_by_sex", "obesity_by_sex",
+          "overview", "forest", "radar",
+          "tobacco_by_sex", "bp_by_sex", "obesity_by_sex",
           "glucose_by_sex", "bp_by_age", "obesity_by_age", "sex_dashboard"
         )
 

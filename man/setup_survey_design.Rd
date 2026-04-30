@@ -32,6 +32,6 @@ The function handles five design cases per step:
 \item Unweighted (simple random sampling)
 }
 
-Extreme weights are trimmed using median-based relative bounds
-\code{[median/10, median*10]} if meaningful variation exists.
+Weights are used as-is without trimming, consistent with the
+WHO official STEPS analysis scripts.
 }

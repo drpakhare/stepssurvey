@@ -11,7 +11,8 @@ run_steps_pipeline(
   age_min = 18,
   age_max = 69,
   output_dir = "outputs",
-  render_reports = TRUE
+  render_reports = TRUE,
+  mapping_file = NULL
 )
 }
 \arguments{
@@ -28,6 +29,12 @@ run_steps_pipeline(
 \item{output_dir}{Directory for all outputs (default "outputs").}
 
 \item{render_reports}{Logical; render Word documents? (default TRUE).}
+
+\item{mapping_file}{Optional path to a filled column mapping template
+(Excel or CSV). If provided, uses \code{\link[=read_column_mapping]{read_column_mapping()}} instead of
+auto-detection. See the template at
+\code{system.file("templates", "column_mapping_template.xlsx",
+  package = "stepssurvey")}.}
 }
 \value{
 A list with elements:
@@ -53,10 +60,17 @@ This is the main entry point for end-to-end STEPS analysis.
 }
 \examples{
 \dontrun{
+# Auto-detect columns
 result <- run_steps_pipeline("data/raw/steps_data.csv",
                              country_name = "Senegal",
                              survey_year = 2023)
 result$key_indicators
 result$plots$overview
+
+# Use a custom column mapping
+result <- run_steps_pipeline("data/raw/steps_data.csv",
+                             country_name = "Senegal",
+                             survey_year = 2023,
+                             mapping_file = "my_mapping.xlsx")
 }
 }

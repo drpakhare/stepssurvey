@@ -304,9 +304,8 @@ are present:
 - **Weights only**: self-representing design
 - **Unweighted**: simple random sample (weights set to 1)
 
-Extreme sampling weights are automatically trimmed to the range
-\[0.1, 10\] using `survey::trimWeights()` to prevent a few observations
-from dominating the estimates.
+Sampling weights are used as-is without trimming, consistent with
+the WHO official STEPS analysis scripts.
 
 The returned object can be used with any function from the **survey**
 package if you need custom analyses beyond what the package provides.

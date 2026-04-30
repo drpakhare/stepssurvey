@@ -17,6 +17,15 @@
   # Temporarily rename wt_col to a fixed name for formula interface
   data$.wt <- data[[wt_col]]
 
+  # Drop rows with NA or zero weights (survey::svydesign fails on NA weights)
+  if (has_weight) {
+    n_na_wt <- sum(is.na(data$.wt) | data$.wt == 0)
+    if (n_na_wt > 0) {
+      data <- data[!is.na(data$.wt) & data$.wt > 0, ]
+      if (nchar(label)) message(glue::glue("  - Dropped {n_na_wt} rows with NA/zero weights"))
+    }
+  }
+
   # -- Case 1: Full complex design (weights + strata + clusters) -------------
   if (has_weight & has_strata & has_cluster) {
     if (nchar(label)) message(glue::glue("  {label}: Stratified cluster sampling with weights"))
@@ -62,17 +71,10 @@
     design <- survey::svydesign(ids = ~1, data = data)
   }
 
-  # Trim extreme weights (median-based bounds for expansion weights)
-  if (has_weight) {
-    w <- data$.wt
-    med_w <- stats::median(w, na.rm = TRUE)
-    if (med_w > 0 && stats::sd(w, na.rm = TRUE) / med_w > 0.01) {
-      lower_bound <- med_w / 10
-      upper_bound <- med_w * 10
-      design <- survey::trimWeights(design, lower = lower_bound, upper = upper_bound, strict = FALSE)
-      if (nchar(label)) message(glue::glue("  - Weights trimmed to [{round(lower_bound, 2)}, {round(upper_bound, 2)}]"))
-    }
-  }
+  # NOTE: WHO official STEPS scripts do NOT trim weights.
+  # Previous versions of this package applied trimWeights(median/10, median*10),
+  # but this caused systematic ~2.5pp discrepancies in tobacco indicators.
+  # Removed to align with WHO methodology.
 
   return(design)
 }
@@ -101,13 +103,18 @@
 #' 4. Weights only
 #' 5. Unweighted (simple random sampling)
 #'
-#' Extreme weights are trimmed using median-based relative bounds
-#' \code{[median/10, median*10]} if meaningful variation exists.
+#' Weights are used as-is without trimming, consistent with the
+#' WHO official STEPS analysis scripts.
 #'
 #' @export
 setup_survey_design <- function(data) {
 
   message("  Setting up survey designs (per WHO STEPS Step)...")
+
+  # Match WHO STEPS official scripts: handle lone PSUs gracefully
+
+  options(survey.lonely.psu = "adjust")
+  options(survey.adjust.domain.lonely = TRUE)
 
   # Check whether we actually have 3 distinct weight columns
   has_s1 <- "wt_step1" %in% names(data)

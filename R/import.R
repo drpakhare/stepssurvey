@@ -21,7 +21,18 @@ import_steps_data <- function(path) {
     "csv"  = readr::read_csv(path, show_col_types = FALSE),
     "xlsx" = readxl::read_excel(path),
     "xls"  = readxl::read_excel(path),
-    "dta"  = haven::read_dta(path),
+    "dta"  = tryCatch(
+      haven::read_dta(path),
+      error = function(e) {
+        # Some STEPS .dta files have encoding issues — retry with latin1
+        if (grepl("encoding|convert", e$message, ignore.case = TRUE)) {
+          message("  \u26a0 Encoding issue detected, retrying with latin1 encoding...")
+          haven::read_dta(path, encoding = "latin1")
+        } else {
+          stop(e)
+        }
+      }
+    ),
     "sav"  = haven::read_spss(path),
     stop(glue::glue("Unsupported file type: .{ext}. Use CSV, Excel, Stata, or SPSS."),
          call. = FALSE)
@@ -179,6 +190,14 @@ detect_steps_columns <- function(data) {
     age       = detect_col(data, c("age", "age_years", "c3"), "Age"),
     # v3.1: sex/c2   v3.2: C1 = sex
     sex       = detect_col(data, c("sex", "gender", "c1", "c2"), "Sex"),
+    # Pre-computed age range groups (standard in WHO-processed datasets)
+    agerange  = detect_col(data, c("agerange", "age_range", "agegrp",
+                                    "age_group"), "Age range group"),
+    # Validity flag (WHO scripts filter on valid==1; not always present)
+    valid     = detect_col(data, c("valid", "consent", "completed"), "Valid/consent flag"),
+    # Urban/rural setting (common stratifier)
+    urban_rural = detect_col(data, c("urbanrural", "urban_rural", "urban",
+                                      "residence", "setting"), "Urban/rural"),
     # -- Survey design variables ------------------------------------------------
     # WHO STEPS toolkit standard: WStep1, WStep2, WStep3 (one weight per Step)
     # See Part 4, Section 1 of WHO STEPS Manual.
@@ -272,12 +291,12 @@ detect_steps_columns <- function(data) {
       label = "Current alcohol use (past 30 days)"),
 
     # Heavy episodic drinking:
+    # a9 = count of times consumed 6+ drinks on a single occasion (v3.2)
     heavy_episode   = .detect_col_with_label(data,
       safe_candidates = c("alcohol_6drin_occasions", "heavy_drinking", "binge",
                           "heavy_episodic", "hed", "hed_total"),
       ambiguous = list(
-        a5 = c("heavy", "episodic", "binge"),
-        a9 = c("6 or more", "heavy", "episodic")
+        a9 = c("6 or more", "6+", "heavy", "episodic", "binge")
       ),
       label = "Heavy episodic drinking"),
 
@@ -490,5 +509,170 @@ detect_steps_columns <- function(data) {
 
   n_found <- sum(!sapply(cols, is.null))
   message(glue::glue("  \u2192 {n_found}/{length(cols)} columns detected automatically"))
+  return(cols)
+}
+
+#' Read a column mapping file
+#'
+#' Reads a filled-in column mapping template (Excel or CSV) and returns a
+#' named list suitable for passing to [clean_steps_data()].  The mapping file
+#' should have at least two columns: one with the standard variable name
+#' (column A) and one with the user's column name (column C in the template,
+#' or the third column).
+#'
+#' This function is the manual alternative to [detect_steps_columns()].
+#' Use it when your dataset has non-standard variable names that
+#' auto-detection cannot resolve.
+#'
+#' @param path Path to the filled mapping file (.xlsx or .csv).
+#' @param data Optional data frame. If provided, the function validates that
+#'   every mapped column actually exists in the data.
+#'
+#' @return A named list where names are standard variable identifiers
+#'   (e.g. \code{"age"}, \code{"sbp1"}) and values are the corresponding
+#'   column names in the user's dataset.
+#'   Unmapped variables are set to \code{NULL}.
+#'
+#' @details
+#' A blank template can be obtained from
+#' \code{system.file("templates", "column_mapping_template.xlsx",
+#'                    package = "stepssurvey")}
+#' or downloaded from the Shiny app.
+#'
+#' The function ignores domain-header rows (rows where column A is all-caps
+#' with no entry in column C) and skips any row where the user's column name
+#' is blank.
+#'
+#' @examples
+#' \dontrun{
+#'   cols <- read_column_mapping("my_mapping.xlsx")
+#'   raw  <- import_steps_data("survey.dta")
+#'   clean <- clean_steps_data(raw, cols)
+#' }
+#'
+#' @export
+read_column_mapping <- function(path, data = NULL) {
+  if (!file.exists(path)) {
+    stop(glue::glue("Mapping file not found: {path}"), call. = FALSE)
+  }
+
+  ext <- tolower(tools::file_ext(path))
+
+  mapping_df <- switch(ext,
+    "xlsx" = readxl::read_excel(path, sheet = "Column Mapping",
+                                col_types = "text"),
+    "xls"  = readxl::read_excel(path, sheet = "Column Mapping",
+                                col_types = "text"),
+    "csv"  = utils::read.csv(path, stringsAsFactors = FALSE,
+                              colClasses = "character"),
+    stop(glue::glue("Unsupported mapping file format: .{ext}"), call. = FALSE)
+  )
+
+  # Expect columns: Standard Variable (1), Description (2), Your Column Name (3)
+  if (ncol(mapping_df) < 3) {
+    stop("Mapping file must have at least 3 columns: ",
+         "Standard Variable, Description, Your Column Name", call. = FALSE)
+  }
+
+  # Use positional columns (robust to header renaming)
+  std_col  <- mapping_df[[1]]
+  user_col <- mapping_df[[3]]
+
+  # Build the cols list
+  cols <- list()
+  n_mapped <- 0
+  n_missing <- 0
+  missing_vars <- character(0)
+
+  for (i in seq_along(std_col)) {
+    std_name <- trimws(as.character(std_col[i]))
+    usr_name <- trimws(as.character(user_col[i]))
+
+    # Skip blank rows, domain headers (all-caps with no mapping), NA values
+    if (is.na(std_name) || nchar(std_name) == 0) next
+    if (std_name == toupper(std_name) && grepl("[A-Z]", std_name)) next
+    if (is.na(usr_name) || nchar(usr_name) == 0) {
+      cols[[std_name]] <- NULL
+      next
+    }
+
+    # Validate against actual data if provided
+    if (!is.null(data) && !(usr_name %in% names(data))) {
+      missing_vars <- c(missing_vars, usr_name)
+      n_missing <- n_missing + 1
+    }
+
+    cols[[std_name]] <- usr_name
+    n_mapped <- n_mapped + 1
+  }
+
+  message(glue::glue("  \u2713 Column mapping loaded: {n_mapped} variables mapped"))
+
+
+  if (n_missing > 0) {
+    warning(glue::glue(
+      "{n_missing} mapped column(s) not found in data: ",
+      "{paste(missing_vars, collapse = ', ')}"
+    ), call. = FALSE)
+  }
+
+  # Ensure all standard names that exist in detect_steps_columns are present
+  # (as NULL if not mapped), so downstream code can safely check cols$xyz
+  all_standard <- c(
+    "age", "sex", "agerange", "valid", "urban_rural",
+    "weight_step1", "weight_step2", "weight_step3", "strata", "psu",
+    "tobacco_current", "tobacco_daily", "tobacco_start_age", "tobacco_duration",
+    "tobacco_cig_day", "tobacco_cig_week", "tobacco_hand_day",
+    "tobacco_pipe_day", "tobacco_cigar_day", "tobacco_shisha_day",
+    "tobacco_quit_attempt", "tobacco_quit_advice", "tobacco_past",
+    "tobacco_past_daily", "tobacco_quit_age", "tobacco_quit_duration",
+    "smokeless_current", "smokeless_daily", "slt_snuff_mouth",
+    "slt_chewing", "slt_betel", "smokeless_past", "smokeless_past_daily",
+    "secondhand_home", "secondhand_work", "any_tobacco",
+    "alcohol_ever", "alcohol_12m", "alcohol_current", "heavy_episode",
+    "alcohol_stopped", "alcohol_freq_12m", "alcohol_occasions",
+    "alcohol_drinks_occasion", "alcohol_largest_drinks",
+    "alcohol_6plus_count", "alcohol_7day_freq", "alcohol_homebrew",
+    "drinking_level",
+    "met_total", "pa_work_vig", "pa_work_mod", "pa_transport",
+    "pa_rec_vig", "pa_rec_mod", "pa_sedentary",
+    "fruit_days", "fruit_servings", "veg_days", "veg_servings",
+    "salt_table", "salt_cooking", "processed_salt", "salt_perception",
+    "salt_importance", "salt_knowledge",
+    "salt_limit_processed", "salt_check_labels", "salt_buy_low",
+    "salt_use_spices", "salt_avoid_outside", "salt_other_action",
+    "oil_type", "meals_outside",
+    "pa_work_vig_days", "pa_work_vig_hrs", "pa_work_vig_min",
+    "pa_work_mod_days", "pa_work_mod_hrs", "pa_work_mod_min",
+    "pa_transport_days", "pa_transport_hrs", "pa_transport_min",
+    "pa_rec_vig_days", "pa_rec_vig_hrs", "pa_rec_vig_min",
+    "pa_rec_mod_days", "pa_rec_mod_hrs", "pa_rec_mod_min",
+    "pa_sedentary_hrs", "pa_sedentary_min",
+    "bp_ever_measured", "bp_diagnosed", "bp_diagnosed_12m",
+    "bp_trad_healer", "bp_herbal",
+    "glucose_ever_measured", "dm_diagnosed", "dm_diagnosed_12m",
+    "dm_insulin", "dm_trad_healer", "dm_herbal",
+    "chol_ever_measured", "chol_diagnosed", "chol_diagnosed_12m",
+    "chol_trad_healer", "chol_herbal",
+    "cvd_history", "cvd_aspirin", "cvd_statins",
+    "adv_quit_tobacco", "adv_reduce_salt", "adv_fruit_veg",
+    "adv_reduce_fat", "adv_more_pa", "adv_healthy_wt",
+    "cervical_screen",
+    "education_years", "education_level", "ethnicity",
+    "marital_status", "employment", "income",
+    "height", "weight", "waist", "hip",
+    "sbp1", "sbp2", "sbp3", "dbp1", "dbp2", "dbp3",
+    "bp_meds", "pregnant", "heart_rate1", "heart_rate2", "heart_rate3",
+    "mean_hr",
+    "fasting_glucose", "random_glucose", "fasting_status",
+    "dm_meds", "total_chol", "hdl_chol", "triglycerides", "chol_meds"
+  )
+
+  for (nm in all_standard) {
+    if (!(nm %in% names(cols))) {
+      cols[[nm]] <- NULL
+    }
+  }
+
   return(cols)
 }

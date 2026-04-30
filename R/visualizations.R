@@ -109,7 +109,13 @@ build_steps_plots <- function(indicators, key_indicators, country_name, survey_y
     steps_colors, theme_steps
   )
 
-  # - 4. Combined dashboard (patchwork)
+  # - 4. Forest plot
+  plots$forest <- build_forest_plot(key_indicators, config$country_name, config$survey_year)
+
+  # - 5. Radar chart
+  plots$radar <- build_radar_plot(key_indicators, config$country_name, config$survey_year)
+
+  # - 6. Combined dashboard (patchwork)
   sex_plots <- Filter(Negate(is.null), list(
     plots$tobacco_by_sex, plots$bp_by_sex,
     plots$obesity_by_sex, plots$glucose_by_sex
@@ -176,6 +182,117 @@ make_age_chart <- function(by_age_df, title, steps_colors, theme_steps) {
     ggplot2::labs(title = title, x = "Age group (years)", y = "Prevalence (%)") +
     theme_steps
 }
+
+#' Build forest plot of key indicators with 95% CIs
+#'
+#' Creates a horizontal point-and-CI plot (forest plot style) for all
+#' key indicators, grouped by domain.
+#'
+#' @param key_indicators A data frame with domain, indicator, estimate, lower, upper.
+#' @param country_name Country name for title.
+#' @param survey_year Survey year for title.
+#'
+#' @return A ggplot2 object.
+#' @export
+build_forest_plot <- function(key_indicators, country_name, survey_year) {
+  theme_steps <- theme_steps()
+  steps_colors <- steps_colors()
+
+  df <- key_indicators |>
+    dplyr::mutate(
+      indicator = vapply(indicator, function(x) paste(strwrap(x, width = 35), collapse = "\n"), character(1)),
+      indicator = factor(indicator, levels = rev(indicator))
+    )
+
+  ggplot2::ggplot(df, ggplot2::aes(x = estimate, y = indicator, colour = domain)) +
+    ggplot2::geom_vline(xintercept = c(10, 20, 30, 40, 50), linetype = "dotted",
+                        colour = "grey80", linewidth = 0.3) +
+    ggplot2::geom_point(size = 3.5) +
+    ggplot2::geom_errorbarh(ggplot2::aes(xmin = lower, xmax = upper),
+                            height = 0.3, linewidth = 0.7) +
+    ggplot2::geom_text(ggplot2::aes(label = sprintf("%.1f%%", estimate)),
+                       hjust = -0.3, size = 3, colour = "grey30") +
+    ggplot2::scale_x_continuous(limits = c(0, 100),
+                                labels = function(x) paste0(x, "%"),
+                                expand = ggplot2::expansion(mult = c(0, 0.08))) +
+    ggplot2::scale_colour_brewer(palette = "Dark2") +
+    ggplot2::labs(
+      title    = glue::glue("NCD Risk Factor Prevalence -- {country_name} {survey_year}"),
+      subtitle = "Point estimates with 95% confidence intervals",
+      x        = "Prevalence (%)",
+      y        = NULL,
+      colour   = "Domain",
+      caption  = "Source: WHO STEPS Survey"
+    ) +
+    theme_steps +
+    ggplot2::theme(
+      panel.grid.major.y = ggplot2::element_blank(),
+      legend.position = "bottom"
+    )
+}
+
+
+#' Build radar / spider chart of NCD risk factor profile
+#'
+#' Creates a radar-style chart showing prevalence of key risk factors
+#' on a polar coordinate system for quick visual comparison.
+#'
+#' @param key_indicators A data frame with domain, indicator, estimate.
+#' @param country_name Country name for title.
+#' @param survey_year Survey year for title.
+#'
+#' @return A ggplot2 object.
+#' @export
+build_radar_plot <- function(key_indicators, country_name, survey_year) {
+  theme_steps <- theme_steps()
+  steps_colors <- steps_colors()
+
+  # Use short labels for radar
+  short_labels <- c(
+    "Current tobacco use" = "Tobacco",
+    "Current alcohol use" = "Alcohol",
+    "Heavy episodic drinking" = "HED",
+    "Insufficient physical activity" = "Low PA",
+    "Low fruit & vegetable intake (<5 servings/day)" = "Low F&V",
+    "Overweight or obese (BMI >=25)" = "OW/Obese",
+    "Obese (BMI >=30)" = "Obese",
+    "Raised blood pressure" = "Raised BP",
+    "Raised fasting blood glucose" = "Raised glucose",
+    "Raised total cholesterol" = "Raised chol"
+  )
+
+  df <- key_indicators |>
+    dplyr::mutate(
+      short_label = dplyr::if_else(
+        indicator %in% names(short_labels),
+        short_labels[indicator],
+        substr(indicator, 1, 15)
+      ),
+      short_label = factor(short_label, levels = short_label)
+    )
+
+  ggplot2::ggplot(df, ggplot2::aes(x = short_label, y = estimate, fill = domain)) +
+    ggplot2::geom_col(width = 0.8, alpha = 0.75, colour = "white", linewidth = 0.3) +
+    ggplot2::geom_text(ggplot2::aes(label = sprintf("%.0f%%", estimate)),
+                       size = 3, fontface = "bold",
+                       position = ggplot2::position_stack(vjust = 0.5)) +
+    ggplot2::coord_polar(start = 0) +
+    ggplot2::scale_y_continuous(limits = c(0, 100), breaks = c(25, 50, 75)) +
+    ggplot2::scale_fill_brewer(palette = "Set2") +
+    ggplot2::labs(
+      title = glue::glue("{country_name} {survey_year} -- Risk Factor Profile"),
+      fill  = "Domain",
+      x = NULL, y = NULL
+    ) +
+    theme_steps +
+    ggplot2::theme(
+      axis.text.y = ggplot2::element_blank(),
+      axis.ticks.y = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(colour = "grey90"),
+      legend.position = "bottom"
+    )
+}
+
 
 #' Save STEPS plots to PNG files
 #'

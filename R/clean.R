@@ -27,6 +27,16 @@ recode_yn <- function(x) {
 #' @param cols A named list of column names, as returned by [detect_steps_columns()].
 #' @param age_min Minimum age for inclusion (default 18).
 #' @param age_max Maximum age for inclusion (default 69).
+#' @param bp_sbp_threshold SBP threshold for raised BP (default 140; Mongolia uses 130).
+#' @param bp_dbp_threshold DBP threshold for raised BP (default 90; Mongolia uses 80).
+#' @param bmi_overweight BMI threshold for overweight (default 25.0).
+#' @param bmi_obese BMI threshold for obesity (default 30.0).
+#' @param glucose_threshold Fasting glucose threshold for raised glucose / diabetes
+#'   in mmol/L (default 7.0).
+#' @param glucose_impaired_threshold Fasting glucose threshold for impaired fasting
+#'   glucose in mmol/L (default 6.1).
+#' @param chol_threshold Total cholesterol threshold for raised cholesterol
+#'   in mmol/L (default 5.0).
 #'
 #' @return A data frame with standardised and derived variables, ready for
 #' survey design setup.
@@ -46,13 +56,28 @@ recode_yn <- function(x) {
 #' - Drops records with missing age or sex
 #'
 #' @export
-clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
+clean_steps_data <- function(data, cols, age_min = 18, age_max = 69,
+                             bp_sbp_threshold = 140, bp_dbp_threshold = 90,
+                             bmi_overweight = 25.0, bmi_obese = 30.0,
+                             glucose_threshold = 7.0,
+                             glucose_impaired_threshold = 6.1,
+                             chol_threshold = 5.0) {
 
   d <- data
 
   # Helper: TRUE only if the column mapping exists AND the column is in the data
   has <- function(col_name) {
     !is.null(cols[[col_name]]) && cols[[col_name]] %in% names(d)
+  }
+
+  # -- Filter to valid/consented records (WHO scripts: valid==1) ---------------
+  if (has("valid")) {
+    n_before <- nrow(d)
+    d <- d |> dplyr::filter(.data[[cols$valid]] == 1)
+    n_dropped <- n_before - nrow(d)
+    if (n_dropped > 0) {
+      message(glue::glue("    \u2713 Filtered to valid records: dropped {n_dropped}, kept {nrow(d)}"))
+    }
   }
 
   # -- Age & Sex --------------------------------------------------------------
@@ -72,14 +97,29 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
       )
   }
 
+  # Use pre-computed agerange from WHO-processed datasets when available.
+  # Country surveys often use different age groupings (e.g. 18-29/30-44/45-59/60-69
+  # or 18-44/45-69), so the dataset's own agerange is authoritative for matching
+  # published outputs. We keep our computed age_group as well for standardisation.
+  if (has("agerange")) {
+    agerange_col <- cols$agerange
+    if (agerange_col != "agerange") {
+      d <- d |> dplyr::rename(agerange = dplyr::all_of(agerange_col))
+    }
+    d$agerange <- as.character(d$agerange)
+    d$agerange <- factor(d$agerange, levels = unique(sort(d$agerange)))
+    message("    \u2713 Using dataset's pre-computed agerange: ",
+            paste(levels(d$agerange), collapse = ", "))
+  }
+
   if (has("sex")) {
     d <- d |>
       dplyr::rename(sex = dplyr::all_of(cols$sex)) |>
       dplyr::mutate(
         # Harmonise sex coding: 1=Male, 2=Female (WHO STEPS standard)
         sex = dplyr::case_when(
-          sex %in% c(1, "1", "m", "M", "male", "Male")   ~ "Male",
-          sex %in% c(2, "2", "f", "F", "female", "Female") ~ "Female",
+          sex %in% c(1, "1", "m", "M", "male", "Male", "Men")   ~ "Male",
+          sex %in% c(2, "2", "f", "F", "female", "Female", "Women") ~ "Female",
           TRUE ~ NA_character_
         ),
         sex = factor(sex, levels = c("Male", "Female"))
@@ -152,6 +192,77 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
     d <- d |>
       dplyr::rename(smokeless_daily_raw = dplyr::all_of(cols$smokeless_daily)) |>
       dplyr::mutate(daily_smokeless = recode_yn(smokeless_daily_raw))
+  }
+
+  # -- WHO data quality filters (smk_cln / smkless_cln) -----------------------
+  # WHO official scripts exclude logically inconsistent tobacco respondents
+  # from the denominator.  smk_cln==1 means "valid smoking record":
+  #   • current smoker AND t2 answered (daily/not daily) → valid
+  #   • non-smoker AND (t2 is NA or says not daily)      → valid
+  #   • current smoker but past-use says "never smoked"  → INVALID
+  #   • current smoker but t2 is not answered             → INVALID
+  #
+  # NOTE: We use the already-decoded logical current_tobacco rather than raw
+  # codes, because raw coding varies (0/1 in some datasets, 1/2 in WHO STEPS).
+  # recode_yn() has already normalised this.
+  if ("current_tobacco" %in% names(d)) {
+    ct <- d$current_tobacco  # logical: TRUE = smoker, FALSE = non-smoker
+    # daily_tobacco is logical if decoded, else we look at raw
+    dt <- if ("daily_tobacco" %in% names(d)) {
+      d$daily_tobacco
+    } else {
+      rep(NA, nrow(d))
+    }
+    # Past tobacco use (t8) — raw value; "2" means "never smoked" in WHO coding
+    t8_raw <- if (has("tobacco_past")) as.numeric(d[[cols$tobacco_past]]) else rep(NA_real_, nrow(d))
+
+    # Only apply strict validation when past-use variable (t8) is available
+    has_t8 <- any(!is.na(t8_raw))
+
+    smk_cln <- dplyr::case_when(
+      # Smoker who says they never smoked in the past → inconsistent
+      !is.na(ct) & ct == TRUE & !is.na(t8_raw) & t8_raw == 2   ~ 2L,
+      # Smoker with daily/nondaily answer → valid
+      !is.na(ct) & ct == TRUE  & !is.na(dt)                     ~ 1L,
+      # Non-smoker → always valid (t2 doesn't matter)
+      !is.na(ct) & ct == FALSE                                   ~ 1L,
+      # Smoker but daily question unanswered → invalid only if t8 is in the dataset
+      !is.na(ct) & ct == TRUE  & is.na(dt) & has_t8             ~ 2L,
+      # Default: valid (don't penalise datasets without t2/t8)
+      TRUE                                                       ~ 1L
+    )
+
+    n_invalid_smk <- sum(smk_cln == 2, na.rm = TRUE)
+    if (n_invalid_smk > 0) {
+      d$current_tobacco[smk_cln == 2] <- NA
+      message(glue::glue("    \u2713 WHO smk_cln filter: {n_invalid_smk} inconsistent smoking records set to NA"))
+    }
+  }
+
+  if ("current_smokeless" %in% names(d)) {
+    cs <- d$current_smokeless  # logical
+    ds <- if ("daily_smokeless" %in% names(d)) {
+      d$daily_smokeless
+    } else {
+      rep(NA, nrow(d))
+    }
+    t15_raw <- if (has("smokeless_past")) as.numeric(d[[cols$smokeless_past]]) else rep(NA_real_, nrow(d))
+
+    has_t15 <- any(!is.na(t15_raw))
+
+    smkless_cln <- dplyr::case_when(
+      !is.na(cs) & cs == TRUE  & !is.na(t15_raw) & t15_raw == 2 ~ 2L,
+      !is.na(cs) & cs == TRUE  & !is.na(ds)                      ~ 1L,
+      !is.na(cs) & cs == FALSE                                    ~ 1L,
+      !is.na(cs) & cs == TRUE  & is.na(ds) & has_t15             ~ 2L,
+      TRUE                                                        ~ 1L
+    )
+
+    n_invalid_smkless <- sum(smkless_cln == 2, na.rm = TRUE)
+    if (n_invalid_smkless > 0) {
+      d$current_smokeless[smkless_cln == 2] <- NA
+      message(glue::glue("    \u2713 WHO smkless_cln filter: {n_invalid_smkless} inconsistent smokeless records set to NA"))
+    }
   }
 
   # Derived smoking variables
@@ -288,20 +399,34 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
 
   if (has("heavy_episode")) {
     d <- d |>
-      dplyr::rename(heavy_episode_raw = dplyr::all_of(cols$heavy_episode)) |>
-      dplyr::mutate(heavy_episodic = recode_yn(heavy_episode_raw))
-    # WHO STEPS standard: HED denominator = total population, not just drinkers.
-    # Non-drinkers are coded FALSE (not NA) for heavy episodic drinking.
-    if ("current_alcohol" %in% names(d)) {
+      dplyr::rename(heavy_episode_raw = dplyr::all_of(cols$heavy_episode))
+
+    # a9 in WHO STEPS v3.2 is a COUNT variable (number of occasions with 6+ drinks).
+    # Values: 0 = never, 1+ = yes, 77 = don't know, 88 = refused.
+    # For yes/no binary columns, recode_yn handles it. For count columns,
+    # we derive: HED = TRUE if count >= 1 (excluding 77/88).
+    raw_vals <- unique(stats::na.omit(as.numeric(d$heavy_episode_raw)))
+    if (length(raw_vals) > 0 && max(raw_vals, na.rm = TRUE) > 2) {
+      # Count variable: 0 = no HED, >=1 = HED, 77/88 = unknown
+      message("  \u2192 Heavy episodic drinking: count variable detected (values: ",
+              paste(sort(raw_vals[raw_vals <= 10]), collapse = ", "),
+              if (any(raw_vals > 10)) paste0(", ..., ", max(raw_vals)) else "", ")")
       d <- d |>
         dplyr::mutate(
-          heavy_episodic = dplyr::if_else(
-            current_alcohol == FALSE & is.na(heavy_episodic),
-            FALSE,
-            heavy_episodic
+          heavy_episode_raw_n = as.numeric(heavy_episode_raw),
+          heavy_episodic = dplyr::case_when(
+            heavy_episode_raw_n %in% c(77, 88, 99) ~ NA,
+            heavy_episode_raw_n >= 1 ~ TRUE,
+            heavy_episode_raw_n == 0 ~ FALSE,
+            TRUE ~ NA
           )
-        )
+        ) |>
+        dplyr::select(-heavy_episode_raw_n)
+    } else {
+      d <- d |>
+        dplyr::mutate(heavy_episodic = recode_yn(heavy_episode_raw))
     }
+
   }
 
   # Alcohol status categories (ever / 12m / current)
@@ -311,6 +436,64 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
   if (has("alcohol_12m")) {
     d <- d |> dplyr::mutate(alcohol_12m = recode_yn(.data[[cols$alcohol_12m]]))
   }
+
+  # WHO STEPS denominator fix: respondents who skipped the "past 30 days"
+
+  # question because they are lifetime abstainers (a1=No) or didn't drink
+  # in the past 12 months (a2=No) should be FALSE for current_alcohol,
+  # NOT NA. Otherwise svymean with na.rm=TRUE inflates the proportion
+  # by excluding non-drinkers from the denominator.
+  if ("current_alcohol" %in% names(d)) {
+    if ("alcohol_ever" %in% names(d)) {
+      d <- d |> dplyr::mutate(
+        current_alcohol = dplyr::if_else(
+          is.na(current_alcohol) & !is.na(alcohol_ever) & alcohol_ever == FALSE,
+          FALSE, current_alcohol
+        )
+      )
+    }
+    if ("alcohol_12m" %in% names(d)) {
+      d <- d |> dplyr::mutate(
+        current_alcohol = dplyr::if_else(
+          is.na(current_alcohol) & !is.na(alcohol_12m) & alcohol_12m == FALSE,
+          FALSE, current_alcohol
+        )
+      )
+    }
+    # Also: if alcohol_ever exists and is FALSE, but current_alcohol is still NA
+    # (no alcohol_12m column), set to FALSE
+    message("    \u2713 Non-drinkers coded as FALSE for current_alcohol (not NA)")
+  }
+
+  # WHO STEPS standard: HED denominator = total population, not just drinkers.
+  # Non-drinkers (by any upstream skip) must be coded FALSE (not NA) for heavy
+  # episodic drinking.  This block runs AFTER the current_alcohol denominator
+  # fix so that all non-drinker skip patterns have already been resolved.
+  if ("heavy_episodic" %in% names(d)) {
+    if ("current_alcohol" %in% names(d)) {
+      d <- d |> dplyr::mutate(
+        heavy_episodic = dplyr::if_else(
+          current_alcohol == FALSE & is.na(heavy_episodic), FALSE, heavy_episodic
+        )
+      )
+    }
+    if ("alcohol_12m" %in% names(d)) {
+      d <- d |> dplyr::mutate(
+        heavy_episodic = dplyr::if_else(
+          alcohol_12m == FALSE & is.na(heavy_episodic), FALSE, heavy_episodic
+        )
+      )
+    }
+    if ("alcohol_ever" %in% names(d)) {
+      d <- d |> dplyr::mutate(
+        heavy_episodic = dplyr::if_else(
+          alcohol_ever == FALSE & is.na(heavy_episodic), FALSE, heavy_episodic
+        )
+      )
+    }
+    message("    \u2713 Non-drinkers coded as FALSE for heavy_episodic (total population denominator)")
+  }
+
   # Alcohol consumption status (4-level category)
   if (all(c("alcohol_ever", "alcohol_12m") %in% names(d))) {
     d <- d |> dplyr::mutate(
@@ -347,6 +530,49 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
   }
 
   # -- Physical activity (MET-based) -----------------------------------------
+
+  # WHO STEPS special code cleaning for GPAQ:
+  # 77 = don't know, 88 = refused → recode to NA before any computation.
+  # Days should be 0-7, hours 0-23, minutes 0-59.
+  # Also: if respondent said "No" to the activity (e.g. p1=2 for vig work),
+  # the skip pattern means days/hours/mins should be 0 (not NA).
+  .clean_gpaq_val <- function(x, max_valid = NULL) {
+    x <- as.numeric(x)
+    x[x %in% c(77, 88, 99)] <- NA
+    if (!is.null(max_valid)) x[!is.na(x) & x > max_valid] <- NA
+    x
+  }
+
+  # Clean GPAQ days (max 7), hours (max 23), minutes (max 59)
+  gpaq_days_cols <- c("pa_work_vig_days", "pa_work_mod_days", "pa_transport_days",
+                      "pa_rec_vig_days", "pa_rec_mod_days")
+  gpaq_hrs_cols  <- c("pa_work_vig_hrs", "pa_work_mod_hrs", "pa_transport_hrs",
+                      "pa_rec_vig_hrs", "pa_rec_mod_hrs")
+  gpaq_min_cols  <- c("pa_work_vig_min", "pa_work_mod_min", "pa_transport_min",
+                      "pa_rec_vig_min", "pa_rec_mod_min")
+
+  # Pre-clean: recode 77/88 to NA and cap at valid ranges
+  for (col_key in gpaq_days_cols) {
+    if (has(col_key)) {
+      d[[cols[[col_key]]]] <- .clean_gpaq_val(d[[cols[[col_key]]]], max_valid = 7)
+    }
+  }
+  for (col_key in gpaq_hrs_cols) {
+    if (has(col_key)) {
+      d[[cols[[col_key]]]] <- .clean_gpaq_val(d[[cols[[col_key]]]], max_valid = 23)
+    }
+  }
+  for (col_key in gpaq_min_cols) {
+    if (has(col_key)) {
+      d[[cols[[col_key]]]] <- .clean_gpaq_val(d[[cols[[col_key]]]], max_valid = 59)
+    }
+  }
+  # Also clean sedentary hours/minutes
+  if (has("pa_sedentary_hrs")) d[[cols$pa_sedentary_hrs]] <- .clean_gpaq_val(d[[cols$pa_sedentary_hrs]], max_valid = 23)
+  if (has("pa_sedentary_min")) d[[cols$pa_sedentary_min]] <- .clean_gpaq_val(d[[cols$pa_sedentary_min]], max_valid = 59)
+
+  message("    \u2713 GPAQ special codes (77/88/99) cleaned, values capped at valid ranges")
+
   if (has("met_total")) {
     d <- d |>
       dplyr::rename(met_total = dplyr::all_of(cols$met_total)) |>
@@ -363,18 +589,59 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
   }
 
   # PA domain-specific: minutes per day for work, transport, recreation
-  # Work vigorous: P2 days * (P3a hrs + P3b min) * 2 (vig MET factor)
-  if (has("pa_work_vig_days") && (has("pa_work_vig_hrs") || has("pa_work_vig_min"))) {
-    hrs <- if (has("pa_work_vig_hrs")) as.numeric(d[[cols$pa_work_vig_hrs]]) else 0
-    mins <- if (has("pa_work_vig_min")) as.numeric(d[[cols$pa_work_vig_min]]) else 0
-    days <- as.numeric(d[[cols$pa_work_vig_days]])
-    d$pa_work_vig_min_day <- (days * (hrs * 60 + mins)) / 7
+  # WHO STEPS cleaning rules:
+  #  1. When a screening question (P1/P4/P7/P10/P13) = "No", the follow-up
+  #     days/time questions are skipped (NA).  The domain contribution is 0
+  #     (not missing).  We must set it explicitly so these respondents are
+  #     included in the MET denominator.
+  #  2. Cap daily time at 16 hours (960 min) per domain.  If exceeded,
+  #     the WHO GPAQ guide says ALL PA data for that person should be removed.
+
+  # Helper: recode screening question to logical (TRUE = does activity)
+  .screen_yes <- function(x) {
+    v <- as.numeric(x)
+    dplyr::if_else(v == 1, TRUE, dplyr::if_else(v == 2, FALSE, NA))
   }
+
+  # Helper to compute domain min/day, respecting screening question
+  .domain_min_day <- function(screen_col, days_col, hrs_col, min_col) {
+    # If screening question is available and answered "No" → 0
+    screen <- if (!is.null(screen_col) && screen_col %in% names(d)) .screen_yes(d[[screen_col]]) else NULL
+    days <- as.numeric(d[[days_col]])
+    hrs  <- if (!is.null(hrs_col) && hrs_col %in% names(d)) as.numeric(d[[hrs_col]]) else 0
+    mins <- if (!is.null(min_col) && min_col %in% names(d)) as.numeric(d[[min_col]]) else 0
+
+    daily_time <- hrs * 60 + mins  # time per session (= per day)
+    result <- (days * daily_time) / 7  # average min/day over the week
+
+    # WHO cleaning: if daily time > 960 min in this domain, set ALL PA to NA
+    # (flagged here; cleaned up after all domains are computed)
+    result <- dplyr::if_else(!is.na(daily_time) & daily_time > 960, NA_real_, result)
+
+    # Screening = No → domain contribution is 0
+    if (!is.null(screen)) {
+      result <- dplyr::if_else(!is.na(screen) & screen == FALSE, 0, result)
+    }
+    result
+  }
+
+  # Work vigorous: P1 screens P2/P3
+  if (has("pa_work_vig_days") && (has("pa_work_vig_hrs") || has("pa_work_vig_min"))) {
+    d$pa_work_vig_min_day <- .domain_min_day(
+      if (has("pa_work_vig")) cols$pa_work_vig else NULL,
+      cols$pa_work_vig_days,
+      if (has("pa_work_vig_hrs")) cols$pa_work_vig_hrs else NULL,
+      if (has("pa_work_vig_min")) cols$pa_work_vig_min else NULL
+    )
+  }
+  # Work moderate: P4 screens P5/P6
   if (has("pa_work_mod_days") && (has("pa_work_mod_hrs") || has("pa_work_mod_min"))) {
-    hrs <- if (has("pa_work_mod_hrs")) as.numeric(d[[cols$pa_work_mod_hrs]]) else 0
-    mins <- if (has("pa_work_mod_min")) as.numeric(d[[cols$pa_work_mod_min]]) else 0
-    days <- as.numeric(d[[cols$pa_work_mod_days]])
-    d$pa_work_mod_min_day <- (days * (hrs * 60 + mins)) / 7
+    d$pa_work_mod_min_day <- .domain_min_day(
+      if (has("pa_work_mod")) cols$pa_work_mod else NULL,
+      cols$pa_work_mod_days,
+      if (has("pa_work_mod_hrs")) cols$pa_work_mod_hrs else NULL,
+      if (has("pa_work_mod_min")) cols$pa_work_mod_min else NULL
+    )
   }
   # Sum work domain
   work_cols <- intersect(c("pa_work_vig_min_day", "pa_work_mod_min_day"), names(d))
@@ -383,26 +650,33 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
     d$pa_work_min_day[rowSums(!is.na(d[work_cols])) == 0] <- NA
   }
 
-  # Transport: P8 days * (P9a hrs + P9b min)
+  # Transport: P7 screens P8/P9
   if (has("pa_transport_days") && (has("pa_transport_hrs") || has("pa_transport_min"))) {
-    hrs <- if (has("pa_transport_hrs")) as.numeric(d[[cols$pa_transport_hrs]]) else 0
-    mins <- if (has("pa_transport_min")) as.numeric(d[[cols$pa_transport_min]]) else 0
-    days <- as.numeric(d[[cols$pa_transport_days]])
-    d$pa_transport_min_day <- (days * (hrs * 60 + mins)) / 7
+    d$pa_transport_min_day <- .domain_min_day(
+      if (has("pa_transport")) cols$pa_transport else NULL,
+      cols$pa_transport_days,
+      if (has("pa_transport_hrs")) cols$pa_transport_hrs else NULL,
+      if (has("pa_transport_min")) cols$pa_transport_min else NULL
+    )
   }
 
-  # Recreation
+  # Recreation vigorous: P10 screens P11/P12
   if (has("pa_rec_vig_days") && (has("pa_rec_vig_hrs") || has("pa_rec_vig_min"))) {
-    hrs <- if (has("pa_rec_vig_hrs")) as.numeric(d[[cols$pa_rec_vig_hrs]]) else 0
-    mins <- if (has("pa_rec_vig_min")) as.numeric(d[[cols$pa_rec_vig_min]]) else 0
-    days <- as.numeric(d[[cols$pa_rec_vig_days]])
-    d$pa_rec_vig_min_day <- (days * (hrs * 60 + mins)) / 7
+    d$pa_rec_vig_min_day <- .domain_min_day(
+      if (has("pa_rec_vig")) cols$pa_rec_vig else NULL,
+      cols$pa_rec_vig_days,
+      if (has("pa_rec_vig_hrs")) cols$pa_rec_vig_hrs else NULL,
+      if (has("pa_rec_vig_min")) cols$pa_rec_vig_min else NULL
+    )
   }
+  # Recreation moderate: P13 screens P14/P15
   if (has("pa_rec_mod_days") && (has("pa_rec_mod_hrs") || has("pa_rec_mod_min"))) {
-    hrs <- if (has("pa_rec_mod_hrs")) as.numeric(d[[cols$pa_rec_mod_hrs]]) else 0
-    mins <- if (has("pa_rec_mod_min")) as.numeric(d[[cols$pa_rec_mod_min]]) else 0
-    days <- as.numeric(d[[cols$pa_rec_mod_days]])
-    d$pa_rec_mod_min_day <- (days * (hrs * 60 + mins)) / 7
+    d$pa_rec_mod_min_day <- .domain_min_day(
+      if (has("pa_rec_mod")) cols$pa_rec_mod else NULL,
+      cols$pa_rec_mod_days,
+      if (has("pa_rec_mod_hrs")) cols$pa_rec_mod_hrs else NULL,
+      if (has("pa_rec_mod_min")) cols$pa_rec_mod_min else NULL
+    )
   }
   rec_cols <- intersect(c("pa_rec_vig_min_day", "pa_rec_mod_min_day"), names(d))
   if (length(rec_cols) > 0) {
@@ -416,6 +690,8 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
     d$pa_minutes_per_day <- rowSums(d[all_pa_cols], na.rm = TRUE)
     d$pa_minutes_per_day[rowSums(!is.na(d[all_pa_cols])) == 0] <- NA
   }
+
+  message("    \u2713 GPAQ screening questions used to set non-active domains to 0")
 
   # Compute MET-min/week from raw GPAQ domain variables if met_total not already set
   # WHO GPAQ MET formula: vigorous activities × 8 MET, moderate/transport × 4 MET
@@ -461,13 +737,25 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
   }
 
   # -- Diet ------------------------------------------------------------------
+  # WHO STEPS diet cleaning:
+  #  1. Special codes (77=don't know, 88=refused) → NA
+  #  2. When days=0, servings question is skipped (NA) — contribution is 0, not missing
+  #  3. Cap servings at reasonable max (WHO uses no explicit cap, but >30 is implausible)
+  .clean_diet_val <- function(x) {
+    x <- as.numeric(x)
+    x[x %in% c(77, 88, 99)] <- NA
+    x
+  }
+
   if (has("fruit_days") & has("fruit_servings")) {
     d <- d |>
       dplyr::rename(fruit_days = dplyr::all_of(cols$fruit_days),
              fruit_serv = dplyr::all_of(cols$fruit_servings)) |>
       dplyr::mutate(
-        fruit_days = as.numeric(fruit_days),
-        fruit_serv = as.numeric(fruit_serv),
+        fruit_days = .clean_diet_val(fruit_days),
+        fruit_serv = .clean_diet_val(fruit_serv),
+        # When days=0, servings is skipped (NA) — avg is 0, not missing
+        fruit_serv = dplyr::if_else(fruit_days == 0 & is.na(fruit_serv), 0, fruit_serv),
         avg_fruit_servings = (fruit_days * fruit_serv) / 7
       )
   }
@@ -476,11 +764,14 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
       dplyr::rename(veg_days = dplyr::all_of(cols$veg_days),
              veg_serv = dplyr::all_of(cols$veg_servings)) |>
       dplyr::mutate(
-        veg_days = as.numeric(veg_days),
-        veg_serv = as.numeric(veg_serv),
+        veg_days = .clean_diet_val(veg_days),
+        veg_serv = .clean_diet_val(veg_serv),
+        veg_serv = dplyr::if_else(veg_days == 0 & is.na(veg_serv), 0, veg_serv),
         avg_veg_servings = (veg_days * veg_serv) / 7
       )
   }
+  message("    \u2713 Diet special codes (77/88) cleaned; zero-days \u2192 0 servings")
+
   # Combined fruit+veg servings per day and <5 threshold
   if (all(c("avg_fruit_servings", "avg_veg_servings") %in% names(d))) {
     d <- d |>
@@ -521,13 +812,13 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
         bmi       = weight_kg / (height_cm / 100)^2,
         bmi_category = dplyr::case_when(
           bmi < 18.5              ~ "Underweight",
-          bmi < 25.0              ~ "Normal",
-          bmi < 30.0              ~ "Overweight",
-          bmi >= 30.0             ~ "Obese",
+          bmi < bmi_overweight    ~ "Normal",
+          bmi < bmi_obese         ~ "Overweight",
+          bmi >= bmi_obese        ~ "Obese",
           TRUE                    ~ NA_character_
         ),
-        overweight_obese = bmi >= 25,
-        obese            = bmi >= 30
+        overweight_obese = bmi >= bmi_overweight,
+        obese            = bmi >= bmi_obese
       )
   }
 
@@ -614,8 +905,11 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
   if (!"on_bp_meds" %in% names(d)) d$on_bp_meds <- FALSE
 
   if (all(c("mean_sbp", "mean_dbp") %in% names(d))) {
+    if (bp_sbp_threshold != 140 || bp_dbp_threshold != 90) {
+      message(glue::glue("    \u26a0 Using custom BP threshold: SBP>={bp_sbp_threshold} / DBP>={bp_dbp_threshold}"))
+    }
     d <- d |> dplyr::mutate(
-      raised_bp = (mean_sbp >= 140 | mean_dbp >= 90) | (dplyr::if_else(!is.na(on_bp_meds), on_bp_meds, FALSE)),
+      raised_bp = (mean_sbp >= bp_sbp_threshold | mean_dbp >= bp_dbp_threshold) | (dplyr::if_else(!is.na(on_bp_meds), on_bp_meds, FALSE)),
       bp_stage = dplyr::case_when(
         mean_sbp >= 180 | mean_dbp >= 110 ~ "Stage 3",
         mean_sbp >= 160 | mean_dbp >= 100 ~ "Stage 2",
@@ -630,14 +924,15 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
   # WHO STEPS stores glucose in mmol/L (typical range 3-20), but some
 
   # country datasets use mg/dL (typical range 50-400).
-  # Auto-detect units: if median > 30, assume mg/dL and convert to mmol/L.
+  # Auto-detect units: if median > 35, assume mg/dL and convert to mmol/L.
+  # Threshold aligned with WHO official scripts (median_b5 > 35).
   if (has("fasting_glucose")) {
     d <- d |>
       dplyr::rename(fasting_glucose = dplyr::all_of(cols$fasting_glucose)) |>
       dplyr::mutate(fasting_glucose = as.numeric(fasting_glucose))
 
     med_gluc <- stats::median(d$fasting_glucose, na.rm = TRUE)
-    if (!is.na(med_gluc) && med_gluc > 30) {
+    if (!is.na(med_gluc) && med_gluc > 35) {
       message(glue::glue("  \u26a0 Fasting glucose appears to be in mg/dL (median = {round(med_gluc, 1)}). Converting to mmol/L."))
       d <- d |> dplyr::mutate(fasting_glucose = fasting_glucose / 18.018)
     }
@@ -657,23 +952,24 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
 
   if ("fasting_glucose" %in% names(d)) {
     d <- d |> dplyr::mutate(
-      raised_glucose = fasting_glucose >= 7.0 | (dplyr::if_else(!is.na(on_dm_meds), on_dm_meds, FALSE)),
-      diabetes       = fasting_glucose >= 7.0 | (dplyr::if_else(!is.na(on_dm_meds), on_dm_meds, FALSE)),
-      impaired_glucose = fasting_glucose >= 6.1 & fasting_glucose < 7.0
+      raised_glucose = fasting_glucose >= glucose_threshold | (dplyr::if_else(!is.na(on_dm_meds), on_dm_meds, FALSE)),
+      diabetes       = fasting_glucose >= glucose_threshold | (dplyr::if_else(!is.na(on_dm_meds), on_dm_meds, FALSE)),
+      impaired_glucose = fasting_glucose >= glucose_impaired_threshold & fasting_glucose < glucose_threshold
     )
   }
 
   # -- Cholesterol -----------------------------------------------------------
   # WHO STEPS stores cholesterol in mmol/L (typical range 2-12), but some
   # country datasets use mg/dL (typical range 80-400).
-  # Auto-detect units: if median > 30, assume mg/dL and convert to mmol/L.
+  # Auto-detect units: if median > 12, assume mg/dL and convert to mmol/L.
+  # Threshold aligned with WHO official scripts (median_b8 > 12).
   if (has("total_chol")) {
     d <- d |>
       dplyr::rename(total_chol = dplyr::all_of(cols$total_chol)) |>
       dplyr::mutate(total_chol = as.numeric(total_chol))
 
     med_chol <- stats::median(d$total_chol, na.rm = TRUE)
-    if (!is.na(med_chol) && med_chol > 30) {
+    if (!is.na(med_chol) && med_chol > 12) {
       message(glue::glue("  \u26a0 Total cholesterol appears to be in mg/dL (median = {round(med_chol, 1)}). Converting to mmol/L."))
       d <- d |> dplyr::mutate(total_chol = total_chol / 38.67)
     }
@@ -681,7 +977,7 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
     # Plausibility check (mmol/L scale: 1-20)
     d <- d |> dplyr::mutate(
       total_chol     = dplyr::if_else(total_chol < 1 | total_chol > 20, NA_real_, total_chol),
-      raised_chol    = total_chol >= 5.0
+      raised_chol    = total_chol >= chol_threshold
     )
   }
 
@@ -752,10 +1048,10 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
   if (has("bp_diagnosed_12m")) {
     d <- d |> dplyr::mutate(bp_diagnosed_12m = recode_yn(.data[[cols$bp_diagnosed_12m]]))
   }
-  # BP controlled: among those treated, SBP<140 & DBP<90
+  # BP controlled: among those treated, SBP below threshold
   if (all(c("on_bp_meds", "mean_sbp", "mean_dbp") %in% names(d))) {
     d <- d |> dplyr::mutate(
-      bp_controlled = on_bp_meds & mean_sbp < 140 & mean_dbp < 90
+      bp_controlled = on_bp_meds & mean_sbp < bp_sbp_threshold & mean_dbp < bp_dbp_threshold
     )
   }
 
@@ -860,6 +1156,6 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69) {
   if (n_before > n_after)
     message(glue::glue("  \u26a0 Removed {n_before - n_after} rows with missing age or sex"))
 
-  message(glue::glue("\u2713 Cleaning complete. Final dataset: {nrow(d)} rows \u00d7 {ncol(d)} columns"))
+  message(glue::glue("\u2713 Cleaning complete. Final dataset: {nrow(d)} rows x {ncol(d)} columns"))
   return(d)
 }

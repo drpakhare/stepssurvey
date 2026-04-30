@@ -7,3 +7,10 @@
 ^pkgdown$
 ^doc$
 ^Meta$
+^moldova_2021_validation_results\.csv$
+^app\.R$
+^app$
+^manifest\.json$
+^renv$
+^renv\.lock$
+^rsconnect$

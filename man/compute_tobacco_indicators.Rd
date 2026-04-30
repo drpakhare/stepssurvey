@@ -13,19 +13,25 @@ compute_tobacco_indicators(design)
 A named list of survey estimates. Each element contains proportion
 estimates (as tibble with columns: estimate, lower, upper, etc.) for:
 \itemize{
-\item \code{current_tobacco_total}: current tobacco use, overall
-\item \code{current_tobacco_by_sex}: current tobacco use, by sex
-\item \code{current_tobacco_by_age}: current tobacco use, by age group
-\item \code{daily_tobacco_total}: daily tobacco use, overall
-\item \code{daily_tobacco_by_sex}: daily tobacco use, by sex
-\item \code{daily_tobacco_by_age}: daily tobacco use, by age group
-(if the corresponding variables exist in design)
+\item \code{current_tobacco_any_total/by_sex/by_age}: any current tobacco use
+(smoking or smokeless) -- preferred headline variable
+\item \code{current_tobacco_total/by_sex/by_age}: current tobacco smoking
+\item \code{current_smoker_total/by_sex/by_age}: current smoker
+\item \code{current_smokeless_total/by_sex/by_age}: current smokeless tobacco
+\item \code{daily_tobacco_total/by_sex/by_age}: daily tobacco use
+(only elements for variables present in design are returned)
 }
 }
 \description{
 Calculates prevalence of tobacco use from a survey design object.
 Computes proportions of current and daily tobacco use, stratified by
 sex and age group where available.
+}
+\details{
+When both smoking and smokeless tobacco variables are present,
+\code{current_tobacco_any} (either smoking or smokeless) is preferred
+as the headline tobacco indicator.  The function also reports
+\code{current_smoker} and \code{current_smokeless} separately if available.
 }
 \examples{
 \dontrun{

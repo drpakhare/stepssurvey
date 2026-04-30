@@ -1,0 +1,29 @@
+indicator,section,men,men_ci_low,men_ci_high,women,women_ci_low,women_ci_high,both,both_ci_low,both_ci_high
+current_tobacco_use,Tobacco,52.0,48.6,55.3,7.7,6.1,9.3,29.9,27.7,32.1
+current_smoking,Tobacco,48.9,45.5,52.2,6.3,4.9,7.8,27.6,25.5,29.7
+mean_age_smoking_initiation,Tobacco,18.1,17.8,18.4,19.8,18.6,21.0,18.3,18.0,18.6
+daily_smokers_manufactured_cig_pct,Tobacco,100,,,100,,,100,,
+mean_manufactured_cig_per_day,Tobacco,16.2,15.5,16.9,11.8,10.2,13.5,15.8,15.1,16.4
+secondhand_smoke_home,Tobacco,27.5,23.8,31.2,19.1,16.6,21.6,23.2,20.9,25.7
+secondhand_smoke_work,Tobacco,36.7,32.3,41.0,17.2,14.5,20.0,26.4,23.6,29.2
+heavy_episodic_drinking,Alcohol,24.5,21.6,27.5,3.1,2.1,4.1,13.8,12.1,15.5
+current_alcohol_30days,Alcohol,73.1,69.8,76.4,53.2,49.8,56.6,63.2,60.3,66.0
+lifetime_abstainers,Alcohol,3.0,2.1,4.0,8.5,6.7,10.2,5.7,4.7,6.8
+abstainers_past_12m,Alcohol,9.4,7.2,11.5,12.9,11.1,14.8,11.2,9.6,12.7
+unrecorded_alcohol,Alcohol,53.2,49.1,57.4,38.9,34.9,42.8,47.2,44.2,50.2
+insufficient_fruit_veg,Diet,66.7,63.0,70.4,60.0,56.7,63.4,63.4,60.5,66.2
+insufficient_pa,Physical Activity,9.3,7.3,11.3,8.9,7.2,10.7,9.1,7.7,11.1
+cervical_screening_30_49,Cervical Cancer,,,,72.2,68.0,76.5,,,
+mean_bmi,Physical Measurements,27.2,26.9,27.4,26.6,26.3,26.9,26.9,26.7,27.1
+overweight_bmi25,Physical Measurements,70.8,67.5,74.1,57.0,54.0,59.9,63.9,61.7,66.2
+obese_bmi30,Physical Measurements,21.4,18.8,23.9,24.0,21.8,26.2,22.7,20.9,24.5
+mean_sbp,Physical Measurements,131.5,130.7,132.3,126.8,125.9,127.8,129.2,128.5,129.8
+raised_bp_or_meds,Physical Measurements,35.2,32.2,38.3,34.4,31.8,37.0,34.8,32.7,37.0
+raised_bp_untreated,Physical Measurements,59.0,54.3,63.7,40.9,36.7,45.1,50.0,46.4,53.7
+impaired_fasting_glucose,Biochemical,10.0,7.6,12.3,9.8,7.8,11.8,9.9,8.1,11.7
+raised_glucose_or_meds,Biochemical,6.7,4.4,7.7,5.8,4.5,7.1,6.3,4.8,7.7
+mean_total_cholesterol,Biochemical,4.3,4.3,4.4,4.4,4.3,4.4,4.4,4.3,4.4
+raised_cholesterol_or_meds,Biochemical,26.2,22.8,29.5,29.3,26.4,32.1,27.7,25.4,30.0
+cvd_risk_30pct_or_existing,CVD Risk,12.5,10.0,15.0,12.8,10.4,14.5,12.6,10.7,14.5
+cvd_risk_counselled,CVD Risk,55.8,46.0,65.7,56.0,47.0,65.0,55.9,48.8,63.1
+combined_3to5_risk_factors,Combined Risk,41.2,37.9,44.5,22.5,20.4,24.6,31.8,29.7,34.0

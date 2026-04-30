@@ -13,6 +13,11 @@
 #' @param age_max Maximum age in years (default 69).
 #' @param output_dir Directory for all outputs (default "outputs").
 #' @param render_reports Logical; render Word documents? (default TRUE).
+#' @param mapping_file Optional path to a filled column mapping template
+#'   (Excel or CSV). If provided, uses [read_column_mapping()] instead of
+#'   auto-detection. See the template at
+#'   \code{system.file("templates", "column_mapping_template.xlsx",
+#'   package = "stepssurvey")}.
 #'
 #' @return A list with elements:
 #'   \describe{
@@ -31,11 +36,18 @@
 #'
 #' @examples
 #' \dontrun{
+#' # Auto-detect columns
 #' result <- run_steps_pipeline("data/raw/steps_data.csv",
 #'                              country_name = "Senegal",
 #'                              survey_year = 2023)
 #' result$key_indicators
 #' result$plots$overview
+#'
+#' # Use a custom column mapping
+#' result <- run_steps_pipeline("data/raw/steps_data.csv",
+#'                              country_name = "Senegal",
+#'                              survey_year = 2023,
+#'                              mapping_file = "my_mapping.xlsx")
 #' }
 run_steps_pipeline <- function(data_path,
                                country_name = "Country Name",
@@ -43,7 +55,8 @@ run_steps_pipeline <- function(data_path,
                                age_min = 18,
                                age_max = 69,
                                output_dir = "outputs",
-                               render_reports = TRUE) {
+                               render_reports = TRUE,
+                               mapping_file = NULL) {
 
   message("\n========================================")
   message(" WHO STEPS Analysis Pipeline")
@@ -53,7 +66,13 @@ run_steps_pipeline <- function(data_path,
   message("-- Step 1: Importing data ------------------------------------------")
 
   raw_data <- import_steps_data(data_path)
-  cols <- detect_steps_columns(raw_data)
+
+  if (!is.null(mapping_file)) {
+    message("  Using column mapping from: ", mapping_file)
+    cols <- read_column_mapping(mapping_file, data = raw_data)
+  } else {
+    cols <- detect_steps_columns(raw_data)
+  }
 
   # -- 2. Clean data ----------------------------------------------------------
   message("-- Step 2: Cleaning data -----------------------------------------")

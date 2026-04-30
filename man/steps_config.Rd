@@ -12,7 +12,14 @@ steps_config(
   age_max = 69,
   weight_var = "wt_final",
   strata_var = "stratum",
-  cluster_var = "psu"
+  cluster_var = "psu",
+  bp_sbp_threshold = 140,
+  bp_dbp_threshold = 90,
+  bmi_overweight = 25,
+  bmi_obese = 30,
+  glucose_threshold = 7,
+  glucose_impaired_threshold = 6.1,
+  chol_threshold = 5
 )
 }
 \arguments{
@@ -31,6 +38,20 @@ steps_config(
 \item{strata_var}{Strata variable name (default "stratum", set NULL if none).}
 
 \item{cluster_var}{Cluster variable name (default "psu", set NULL if none).}
+
+\item{bp_sbp_threshold}{SBP threshold for raised BP (default 140).}
+
+\item{bp_dbp_threshold}{DBP threshold for raised BP (default 90).}
+
+\item{bmi_overweight}{BMI threshold for overweight (default 25.0).}
+
+\item{bmi_obese}{BMI threshold for obesity (default 30.0).}
+
+\item{glucose_threshold}{Fasting glucose threshold in mmol/L (default 7.0).}
+
+\item{glucose_impaired_threshold}{Impaired fasting glucose threshold in mmol/L (default 6.1).}
+
+\item{chol_threshold}{Total cholesterol threshold in mmol/L (default 5.0).}
 }
 \value{
 A list with elements:
@@ -40,6 +61,7 @@ A list with elements:
 \item \code{survey_year}: Survey year
 \item \code{age_min}, \code{age_max}: Age range
 \item \code{weight_var}, \code{strata_var}, \code{cluster_var}: Design variable names
+\item Threshold parameters for BP, BMI, glucose, cholesterol
 }
 }
 \description{
@@ -49,6 +71,8 @@ and report parameters for the STEPS pipeline.
 \examples{
 \dontrun{
   cfg <- steps_config("data/steps_2023.csv", "Senegal", 2023)
+  cfg <- steps_config("data/steps.csv", "Mongolia", 2019,
+                      bp_sbp_threshold = 130, bp_dbp_threshold = 80)
 }
 
 }

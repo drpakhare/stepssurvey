@@ -4,7 +4,19 @@
 \alias{clean_steps_data}
 \title{Clean and recode WHO STEPS data}
 \usage{
-clean_steps_data(data, cols, age_min = 18, age_max = 69)
+clean_steps_data(
+  data,
+  cols,
+  age_min = 18,
+  age_max = 69,
+  bp_sbp_threshold = 140,
+  bp_dbp_threshold = 90,
+  bmi_overweight = 25,
+  bmi_obese = 30,
+  glucose_threshold = 7,
+  glucose_impaired_threshold = 6.1,
+  chol_threshold = 5
+)
 }
 \arguments{
 \item{data}{A data frame (typically from \code{\link[=import_steps_data]{import_steps_data()}}).}
@@ -14,6 +26,23 @@ clean_steps_data(data, cols, age_min = 18, age_max = 69)
 \item{age_min}{Minimum age for inclusion (default 18).}
 
 \item{age_max}{Maximum age for inclusion (default 69).}
+
+\item{bp_sbp_threshold}{SBP threshold for raised BP (default 140; Mongolia uses 130).}
+
+\item{bp_dbp_threshold}{DBP threshold for raised BP (default 90; Mongolia uses 80).}
+
+\item{bmi_overweight}{BMI threshold for overweight (default 25.0).}
+
+\item{bmi_obese}{BMI threshold for obesity (default 30.0).}
+
+\item{glucose_threshold}{Fasting glucose threshold for raised glucose / diabetes
+in mmol/L (default 7.0).}
+
+\item{glucose_impaired_threshold}{Fasting glucose threshold for impaired fasting
+glucose in mmol/L (default 6.1).}
+
+\item{chol_threshold}{Total cholesterol threshold for raised cholesterol
+in mmol/L (default 5.0).}
 }
 \value{
 A data frame with standardised and derived variables, ready for

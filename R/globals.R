@@ -28,7 +28,7 @@ utils::globalVariables(c(
 
   # Alcohol
   "alcohol_current_raw", "current_alcohol", "alcohol_12m",
-  "heavy_episode_raw", "heavy_episodic",
+  "heavy_episode_raw", "heavy_episode_raw_n", "heavy_episodic",
   "alcohol_status", "lifetime_abstainer", "past_12m_abstainer",
   "past_12m_not_current", "alcohol_freq_12m",
   "drinking_occasions_30d", "drinks_per_occasion", "drinking_level",
@@ -81,6 +81,10 @@ utils::globalVariables(c(
   # Cleaning internals
   "smokeless_daily_raw", "tobacco_past_raw", "tobacco_past_daily_raw",
   "daily_smokeless", "alcohol_ever", ".data",
+
+  # Diagnostics / plotting
+  "digit", "pct", "pct_missing", "stat", "value", "variable",
+  "short_label",
 
   # Shiny modules
   "zip", "req"

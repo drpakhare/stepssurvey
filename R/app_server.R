@@ -16,15 +16,18 @@ app_server <- function(input, output, session) {
   # 2. Clean: returns reactive(clean_data)
   clean_out <- mod_clean_server("clean", upload_out)
 
-  # 3. Design: returns reactive(design)
+  # 3. Quality: returns reactive(steps_quality)
+  mod_quality_server("quality", upload_out, clean_out)
+
+  # 4. Design: returns reactive(design)
   design_out <- mod_design_server("design", clean_out)
 
-  # 4. Indicators: returns list(results, key_indicators)
+  # 5. Indicators: returns list(results, key_indicators)
   results_out <- mod_indicators_server("indicators", design_out)
 
-  # 5. Visualise: consumes indicators + config
+  # 6. Visualise: consumes indicators + config
   mod_visualise_server("visualise", results_out, upload_out)
 
-  # 6. Reports: consumes config (runs full pipeline internally)
+  # 7. Reports: consumes config (runs full pipeline internally)
   mod_reports_server("reports", upload_out)
 }

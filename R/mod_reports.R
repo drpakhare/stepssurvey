@@ -31,6 +31,23 @@ mod_reports_ui <- function(id) {
         style = "width:100%;margin-top:5px;",
         icon = shiny::icon("book")
       ),
+      shiny::hr(),
+      shiny::h6("Fact Sheet"),
+      shiny::downloadButton(
+        ns("dl_fact_sheet_html"),
+        "Fact Sheet (HTML)",
+        class = "btn-info btn-sm",
+        style = "width:100%;",
+        icon = shiny::icon("file-lines")
+      ),
+      shiny::downloadButton(
+        ns("dl_fact_sheet_word"),
+        "Fact Sheet (Word)",
+        class = "btn-info btn-sm",
+        style = "width:100%;margin-top:5px;",
+        icon = shiny::icon("file-word")
+      ),
+      shiny::hr(),
       shiny::downloadButton(
         ns("dl_tables_plots"),
         "Download tables & plots",
@@ -113,6 +130,8 @@ mod_reports_server <- function(id, upload_out) {
       is_generating = FALSE,
       report_path = NULL,
       data_book_path = NULL,
+      fact_sheet_html = NULL,
+      fact_sheet_word = NULL,
       output_dir = NULL,
       output_files = list(),
       error_message = NULL
@@ -138,7 +157,14 @@ mod_reports_server <- function(id, upload_out) {
         clean_data <- clean_steps_data(
           raw, cols,
           age_min = cfg$age_min,
-          age_max = cfg$age_max
+          age_max = cfg$age_max,
+          bp_sbp_threshold = cfg$bp_sbp_threshold,
+          bp_dbp_threshold = cfg$bp_dbp_threshold,
+          bmi_overweight = cfg$bmi_overweight,
+          bmi_obese = cfg$bmi_obese,
+          glucose_threshold = cfg$glucose_threshold,
+          glucose_impaired_threshold = cfg$glucose_impaired_threshold,
+          chol_threshold = cfg$chol_threshold
         )
         message(sprintf("  Cleaned data: %d rows, %d cols", nrow(clean_data), ncol(clean_data)))
 
@@ -250,9 +276,26 @@ mod_reports_server <- function(id, upload_out) {
           })
         }
 
+        # Render fact sheets (HTML + Word)
+        report_state$status <- "Rendering fact sheets..."
+        fact_sheet_html <- tryCatch({
+          render_fact_sheet(cfg, output_dir, format = "html")
+        }, error = function(e) {
+          message(glue::glue("  Warning: Could not render HTML fact sheet: {e$message}"))
+          NULL
+        })
+        fact_sheet_word <- tryCatch({
+          render_fact_sheet(cfg, output_dir, format = "word")
+        }, error = function(e) {
+          message(glue::glue("  Warning: Could not render Word fact sheet: {e$message}"))
+          NULL
+        })
+
         report_state$status <- "Complete"
         report_state$report_path <- report_path
         report_state$data_book_path <- data_book_path
+        report_state$fact_sheet_html <- fact_sheet_html
+        report_state$fact_sheet_word <- fact_sheet_word
         report_state$output_dir <- output_dir
 
         # List all output files
@@ -428,6 +471,48 @@ mod_reports_server <- function(id, upload_out) {
 
         # Clean up
         unlink(temp_zip_dir, recursive = TRUE)
+      }
+    )
+
+    # Download handler for HTML fact sheet
+    output$dl_fact_sheet_html <- shiny::downloadHandler(
+      filename = function() {
+        cfg <- upload_out$config()
+        country_clean <- gsub("[^a-zA-Z0-9]", "_", cfg$country_name)
+        sprintf("steps_fact_sheet_%s_%d.html",
+                country_clean, cfg$survey_year)
+      },
+      content = function(file) {
+        shiny::req(report_state$fact_sheet_html)
+        if (!file.exists(report_state$fact_sheet_html)) {
+          shiny::showNotification(
+            "Fact sheet not found. Please generate the report first.",
+            type = "error"
+          )
+          return(NULL)
+        }
+        file.copy(report_state$fact_sheet_html, file, overwrite = TRUE)
+      }
+    )
+
+    # Download handler for Word fact sheet
+    output$dl_fact_sheet_word <- shiny::downloadHandler(
+      filename = function() {
+        cfg <- upload_out$config()
+        country_clean <- gsub("[^a-zA-Z0-9]", "_", cfg$country_name)
+        sprintf("steps_fact_sheet_%s_%d.docx",
+                country_clean, cfg$survey_year)
+      },
+      content = function(file) {
+        shiny::req(report_state$fact_sheet_word)
+        if (!file.exists(report_state$fact_sheet_word)) {
+          shiny::showNotification(
+            "Fact sheet not found. Please generate the report first.",
+            type = "error"
+          )
+          return(NULL)
+        }
+        file.copy(report_state$fact_sheet_word, file, overwrite = TRUE)
       }
     )
 

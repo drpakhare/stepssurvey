@@ -1,0 +1,333 @@
+---
+title: "Validation Against WHO Official Fact Sheets"
+author: "Abhijit Pakhare"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Validation Against WHO Official Fact Sheets}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  eval     = FALSE
+)
+```
+
+## Acknowledgements
+
+This validation relies on several resources developed and maintained by
+the World Health Organization (WHO):
+
+- **WHO STEPS instrument and methodology**: The STEPwise Approach to NCD
+  Risk Factor Surveillance (STEPS) was developed by the WHO Department
+  of Noncommunicable Diseases. The instrument, survey manuals, and
+  analysis guidelines (including the *STEPS Part 4: Guide to Physical
+  Measurements* and *Part 5: Data Management and Analysis*) define the
+  standard definitions and indicator computations used throughout this
+  package.
+
+- **WHO official STEPS analysis scripts**: The R scripts maintained by
+  WHO for STEPS data processing and databook generation
+  (available at <https://github.com/WorldHealthOrganization/stepsKGZ>)
+  served as the authoritative reference for indicator derivation logic,
+  survey design setup, weight handling, and data quality filters
+  (`smk_cln`, `smkless_cln`). Key methodological decisions in
+  **stepssurvey** — such as not trimming sampling weights, setting
+  skip-pattern NAs to zero for denominator alignment, and applying
+  screening-question logic for GPAQ — were directly informed by
+  studying these scripts.
+
+- **WHO STEPS country fact sheets**: Published fact sheet values for
+  Moldova (2021), Mongolia (2019), and Georgia (2016) were used as the
+  gold-standard reference estimates. These fact sheets are publicly
+  available from the WHO NCD Microdata Repository
+  (<https://extranet.who.int/ncdsmicrodata>).
+
+- **Licensed STEPS microdata**: The underlying survey microdata were
+  accessed under license from the WHO NCD Microdata Repository. Use of
+  these data is subject to the WHO STEPS data access agreement, and the
+  microdata files are not redistributable.
+
+We gratefully acknowledge the national STEPS survey teams and
+coordinators in the Republic of Moldova, Mongolia, and Georgia for
+designing, conducting, and managing these surveys and for making the
+data available for research use through the WHO NCD Microdata
+Repository. The quality and completeness of these datasets made
+systematic validation possible.
+
+We also acknowledge the WHO NCD Surveillance team for developing and
+maintaining the STEPS methodology, analysis tools, and data sharing
+infrastructure that underpin this work.
+
+## Overview
+
+The **stepssurvey** package has been validated against WHO-published fact
+sheet values for three national STEPS surveys spanning different regions,
+time periods, and STEPS instrument versions:
+
+| Country               | Year | Age range | Instrument | N (unweighted) |
+|:----------------------|:----:|:---------:|:----------:|:--------------:|
+| Republic of Moldova   | 2021 | 18--69    | v3.2       | 4,097          |
+| Mongolia              | 2019 | 15--69    | v3.2       | 6,647          |
+| Georgia               | 2016 | 18--69    | v3.1       | 5,765          |
+
+For each country, the package pipeline (import → detect → clean → survey
+design → indicator computation) was run end-to-end and results compared
+with the "Both Sexes" estimates published in the corresponding WHO STEPS
+country fact sheet.
+
+## Validation criteria
+
+Two complementary criteria were used to judge agreement:
+
+1. **Point-estimate match** — the package estimate falls within 1.0
+   percentage point (pp) of the fact sheet value for proportions, or 1.0
+   unit for continuous measures (BMI, SBP, cholesterol).
+2. **Confidence-interval overlap** — the 95 % confidence intervals from
+   the package and the fact sheet share at least one common value.
+
+The 1 pp tolerance accounts for rounding at different stages and minor
+differences in the treatment of edge cases (e.g. "don't know" responses
+coded as 77 or 88).
+
+## Indicators compared
+
+Up to 17 indicators were compared per country, covering all three STEPS
+Steps:
+
+**Step 1 — Behavioural risk factors:**
+current tobacco use, current smoking, second-hand smoke exposure (home
+and workplace), current alcohol use (past 30 days), heavy episodic
+drinking, insufficient fruit and vegetable consumption, insufficient
+physical activity.
+
+**Step 2 — Physical measurements:**
+mean BMI, overweight (BMI ≥ 25), obesity (BMI ≥ 30), mean systolic
+blood pressure, raised blood pressure or on medication.
+
+**Step 3 — Biochemical measurements:**
+mean total cholesterol, raised cholesterol or on medication, raised
+fasting glucose or on medication, impaired fasting glucose.
+
+## Results summary
+
+```{r summary-table, eval=TRUE, echo=FALSE, results='asis'}
+summary_data <- data.frame(
+  Country = c("Moldova 2021", "Mongolia 2019", "Georgia 2016", "**TOTAL**"),
+  Compared = c(17, 15, 15, 47),
+  Within_1pp = c(16, 15, 15, 46),
+  CI_Overlap = c(17, 15, 15, 47),
+  Match_Rate = c("94%", "100%", "100%", "**98%**")
+)
+
+knitr::kable(
+  summary_data,
+  col.names = c("Country", "Indicators compared", "Within 1 pp",
+                "CI overlap", "Match rate"),
+  align = c("l", "c", "c", "c", "c"),
+  caption = "Validation summary: stepssurvey vs. WHO fact sheets"
+)
+```
+
+Overall, **46 of 47 indicators (98 %) match within 1 pp**, and
+**all 47 (100 %) have overlapping confidence intervals**.
+
+## Detailed results by country
+
+### Moldova 2021
+
+```{r moldova, eval=TRUE, echo=FALSE, results='asis'}
+mda <- data.frame(
+  Indicator = c(
+    "Current tobacco use", "Current smoking", "Second-hand smoke (home)",
+    "Second-hand smoke (work)", "Current alcohol (30 d)",
+    "Heavy episodic drinking", "Insufficient fruit/veg",
+    "Insufficient physical activity",
+    "Overweight (BMI >= 25)", "Obese (BMI >= 30)",
+    "Raised BP or on meds",
+    "Raised glucose or on meds", "Raised cholesterol or on meds",
+    "Impaired fasting glucose",
+    "Mean BMI", "Mean SBP", "Mean total cholesterol"
+  ),
+  Ours = c(27.7, 27.6, 23.3, 26.4, 63.2, 13.8, 63.2, 9.2,
+           63.9, 22.7, 35.0, 6.3, 28.4, 9.9, 26.9, 129.2, 4.4),
+  WHO = c(29.9, 27.6, 23.2, 26.4, 63.2, 13.8, 63.4, 9.1,
+          63.9, 22.7, 34.8, 6.3, 27.7, 9.9, 26.9, 129.2, 4.4),
+  Diff = c(-2.2, 0.0, 0.1, 0.0, 0.0, 0.0, -0.2, 0.1,
+           0.0, 0.0, 0.2, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0),
+  Match = c("No", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes",
+            "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes"),
+  CI_Overlap = c("Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes",
+                 "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes")
+)
+
+knitr::kable(mda, align = c("l", "r", "r", "r", "c", "c"),
+             caption = "Moldova 2021: 16/17 within 1 pp, 17/17 CI overlap")
+```
+
+The single mismatch is **current tobacco use** (−2.2 pp). The confidence
+intervals overlap (ours: 25.6–29.8 vs. WHO: 27.7–32.1), suggesting the
+difference may reflect rounding or a slightly different indicator
+definition in the published fact sheet.
+
+### Mongolia 2019
+
+```{r mongolia, eval=TRUE, echo=FALSE, results='asis'}
+mng <- data.frame(
+  Indicator = c(
+    "Current tobacco use", "Current smoking (daily)",
+    "Current alcohol (30 d)",
+    "Heavy episodic drinking", "Insufficient fruit/veg",
+    "Insufficient physical activity",
+    "Overweight (BMI >= 25)", "Obese (BMI >= 30)",
+    "Raised BP or on meds (130/80)",
+    "Raised glucose or on meds", "Raised cholesterol or on meds",
+    "Impaired fasting glucose",
+    "Mean BMI", "Mean SBP", "Mean total cholesterol"
+  ),
+  Ours = c(25.0, 21.6, 34.8, 20.2, 83.2, 22.5,
+           49.3, 18.5, 44.3, 8.3, 27.8, 17.4, 25.6, 120.5, 4.4),
+  WHO = c(24.2, 21.6, 34.8, 19.8, 83.4, 21.9,
+          49.4, 18.5, 44.0, 8.3, 27.8, 17.4, 25.5, 120.5, 4.4),
+  Diff = c(0.8, 0.0, 0.0, 0.4, -0.2, 0.6,
+           -0.1, 0.0, 0.3, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0),
+  Match = rep("Yes", 15),
+  CI_Overlap = rep("Yes", 15)
+)
+
+knitr::kable(mng, align = c("l", "r", "r", "r", "c", "c"),
+             caption = "Mongolia 2019: 15/15 within 1 pp, 15/15 CI overlap")
+```
+
+Mongolia uses a raised blood-pressure threshold of **130/80 mmHg**
+(rather than the standard 140/90), and the age range begins at 15
+(rather than 18). Second-hand smoke indicators were not reported in the
+Mongolia fact sheet.
+
+Note: the Mongolia WHO fact sheet reports **daily smoking** under the
+"current smoking" label. The package computes both any-current and
+daily smoking; the daily-smoking variable is used for this comparison.
+
+### Georgia 2016
+
+```{r georgia, eval=TRUE, echo=FALSE, results='asis'}
+geo <- data.frame(
+  Indicator = c(
+    "Current tobacco use", "Current smoking (daily)",
+    "Current alcohol (30 d)",
+    "Heavy episodic drinking", "Insufficient fruit/veg",
+    "Insufficient physical activity",
+    "Overweight (BMI >= 25)", "Obese (BMI >= 30)",
+    "Raised BP or on meds",
+    "Raised glucose or on meds", "Raised cholesterol or on meds",
+    "Impaired fasting glucose",
+    "Mean BMI", "Mean SBP", "Mean total cholesterol"
+  ),
+  Ours = c(31.1, 28.0, 39.0, 18.7, 62.9, 18.2,
+           64.6, 33.4, 37.7, 4.5, 27.7, 2.0, 28.2, 129.4, 4.3),
+  WHO = c(31.0, 28.0, 39.1, 18.3, 63.0, 17.4,
+          64.6, 33.2, 37.7, 4.5, 27.7, 2.0, 28.1, 129.4, 4.3),
+  Diff = c(0.1, 0.0, -0.1, 0.4, -0.1, 0.8,
+           0.0, 0.2, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0),
+  Match = rep("Yes", 15),
+  CI_Overlap = rep("Yes", 15)
+)
+
+knitr::kable(geo, align = c("l", "r", "r", "r", "c", "c"),
+             caption = "Georgia 2016: 15/15 within 1 pp, 15/15 CI overlap")
+```
+
+As with Mongolia, the Georgia WHO fact sheet reports **daily smoking**
+under the "current smoking" label. Second-hand smoke indicators were
+not reported in the Georgia fact sheet.
+
+## Key methodological alignments
+
+During validation, several methodological details were identified where
+alignment with the WHO official analysis scripts was essential for
+reproducibility:
+
+**Survey design.** Sampling weights are used as-is without trimming,
+matching the WHO official STEPS analysis scripts. Lone PSUs are handled
+with `options(survey.lonely.psu = "adjust")`.
+
+**Alcohol skip patterns.** Non-drinkers who skip the heavy-episodic
+drinking question (A9) are coded as `FALSE` (not `NA`), ensuring the
+denominator covers the total population rather than only current
+drinkers.
+
+**Physical activity screening questions.** GPAQ screening questions
+(P1, P4, P7, P10, P13) where the respondent answers "No" set the
+domain contribution to zero, rather than leaving it as `NA`. Special
+codes 77 and 88 ("don't know" / "refused") are cleaned to `NA`.
+
+**Diet zero-days handling.** When a respondent reports eating fruit or
+vegetables on zero days per week, the servings-per-day variable (which
+is skipped and therefore `NA`) is set to zero rather than excluded from
+the denominator.
+
+**Configurable blood-pressure thresholds.** The package supports custom
+SBP/DBP thresholds via `clean_steps_data(bp_sbp_threshold, bp_dbp_threshold)`,
+needed because some countries (e.g. Mongolia) use thresholds other than
+the standard 140/90.
+
+**Data quality filters.** The WHO `smk_cln` filter is applied: logically
+inconsistent tobacco respondents (e.g. "I currently smoke" combined with
+"I never smoked in the past") are excluded from the tobacco denominator.
+
+## Running the validation yourself
+
+The full validation script is included in the package at
+`inst/validation/validate_all.R`. To run it, you need the licensed STEPS
+microdata files placed in a `STEPS Licensed Datasets` directory alongside
+the package:
+
+```r
+library(stepssurvey)
+setwd("path/to/stepssurvey")
+source("inst/validation/validate_all.R")
+```
+
+Per-country results are saved as CSV files in `inst/validation/`.
+
+## Reproducibility notes
+
+The validation was performed with R `r paste0(R.version$major, ".", R.version$minor)`,
+using survey package version `r packageVersion("survey")`, and
+stepssurvey version `r packageVersion("stepssurvey")`.
+
+The licensed STEPS microdata files are not redistributable and are
+therefore not included in the package. Researchers with access to the
+WHO STEPS microdata repository can request datasets for the three
+countries listed above and reproduce these results independently.
+
+## References
+
+1. World Health Organization. (2017). *WHO STEPS Surveillance Manual:
+   The WHO STEPwise Approach to Noncommunicable Disease Risk Factor
+   Surveillance.* Geneva: WHO.
+   <https://www.who.int/teams/noncommunicable-diseases/surveillance/systems-tools/steps>
+
+2. World Health Organization. *WHO NCD Microdata Repository: STEPS
+   Survey Data.* <https://extranet.who.int/ncdsmicrodata>
+
+3. World Health Organization. *STEPS data analysis scripts (R).*
+   GitHub repository.
+   <https://github.com/WorldHealthOrganization/stepsKGZ>
+
+4. Republic of Moldova STEPS Survey 2021. *WHO NCD Country Fact
+   Sheet.* Geneva: WHO, 2022.
+
+5. Mongolia STEPS Survey 2019. *WHO NCD Country Fact Sheet.* Geneva:
+   WHO, 2020.
+
+6. Georgia STEPS Survey 2016. *WHO NCD Country Fact Sheet.* Geneva:
+   WHO, 2017.
+
+7. Lumley, T. (2004). Analysis of complex survey samples. *Journal of
+   Statistical Software*, 9(8), 1--19. R package **survey** version
+   `r packageVersion("survey")`.
