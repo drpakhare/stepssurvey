@@ -84,7 +84,7 @@ utils::globalVariables(c(
 
   # Diagnostics / plotting
   "digit", "pct", "pct_missing", "stat", "value", "variable",
-  "short_label",
+  "short_label", "label_x", "label_y",
 
   # Shiny modules
   "zip", "req"

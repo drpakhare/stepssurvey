@@ -64,7 +64,7 @@ build_steps_plots <- function(indicators, key_indicators, country_name, survey_y
     ggplot2::scale_x_continuous(limits = c(0, x_max), labels = function(x) paste0(x, "%")) +
     ggplot2::scale_fill_brewer(palette = "Set2") +
     ggplot2::labs(
-      title    = glue::glue("NCD Risk Factor Prevalence — {config$country_name} {config$survey_year}"),
+      title    = glue::glue("NCD Risk Factor Prevalence \u2014 {config$country_name} {config$survey_year}"),
       subtitle = "Weighted estimates with 95% confidence intervals",
       x        = "Prevalence (%)",
       y        = NULL,
@@ -228,7 +228,7 @@ build_forest_plot <- function(key_indicators, country_name, survey_year) {
                                 expand = ggplot2::expansion(mult = c(0, 0.02))) +
     ggplot2::scale_colour_brewer(palette = "Dark2") +
     ggplot2::labs(
-      title    = glue::glue("NCD Risk Factor Prevalence — {country_name} {survey_year}"),
+      title    = glue::glue("NCD Risk Factor Prevalence \u2014 {country_name} {survey_year}"),
       subtitle = "Point estimates with 95% confidence intervals",
       x        = "Prevalence (%)",
       y        = NULL,
@@ -326,12 +326,12 @@ build_radar_plot <- function(key_indicators, country_name, survey_year) {
     callout <- paste(callout_parts, collapse = " | ")
 
     p <- p + ggplot2::labs(
-      title    = glue::glue("{country_name} {survey_year} — Risk Factor Profile"),
+      title    = glue::glue("{country_name} {survey_year} \u2014 Risk Factor Profile"),
       subtitle = callout
     )
   } else {
     p <- p + ggplot2::labs(
-      title = glue::glue("{country_name} {survey_year} — Risk Factor Profile")
+      title = glue::glue("{country_name} {survey_year} \u2014 Risk Factor Profile")
     )
   }
 

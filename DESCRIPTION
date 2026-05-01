@@ -5,6 +5,7 @@ Authors@R: c(
     person("Abhijit", "Pakhare", email = "abhijit.cfm@aiimsbhopal.edu.in",
            role = c("aut", "cre")),
     person("Ankur", "Joshi", role = "aut"),
+    person("Lena", "Charlette", role = "aut"),
     person("WHO STEPS R Pipeline Contributors", role = "ctb")
   )
 Description: Provides a complete analysis pipeline for the WHO STEPwise

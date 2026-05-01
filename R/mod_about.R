@@ -91,13 +91,19 @@ mod_about_ui <- function(id) {
     # Dr Abhijit Pakhare
     shiny::p(
       shiny::tags$strong("Dr Abhijit Pakhare"),
-      " — Professor, Department of Community and Family Medicine, AIIMS Bhopal"
+      " \u2014 Professor, Department of Community and Family Medicine, AIIMS Bhopal"
     ),
 
     # Dr Ankur Joshi
     shiny::p(
       shiny::tags$strong("Dr Ankur Joshi"),
-      " — Additional Professor, Department of Community and Family Medicine, AIIMS Bhopal",
+      " \u2014 Additional Professor, Department of Community and Family Medicine, AIIMS Bhopal"
+    ),
+
+    # Dr Lena Charlette
+    shiny::p(
+      shiny::tags$strong("Dr Lena Charlette"),
+      " \u2014 Assistant Professor, Department of Community and Family Medicine, AIIMS Madurai",
       style = "margin-bottom: 20px;"
     ),
 
@@ -109,7 +115,7 @@ mod_about_ui <- function(id) {
       "automated test suite, visualisation functions, report templates, and the ",
       "multi-country validation pipeline. The domain expertise, epidemiological ",
       "methodology, and analytical decisions are entirely the authors'; Claude ",
-      "served as a development accelerator that enabled two researchers to build ",
+      "served as a development accelerator that enabled three researchers to build ",
       "and validate a tool that would otherwise require a dedicated software ",
       "engineering team. All AI-generated code was reviewed, tested, and validated ",
       "by the authors against published WHO outputs.",
@@ -129,7 +135,7 @@ mod_about_ui <- function(id) {
         "margin-bottom: 14px;"
       ),
       paste0(
-        "Pakhare A, Joshi A (2026). stepssurvey: Analyse WHO STEPS Survey Data.\n",
+        "Pakhare A, Joshi A, Charlette L (2026). stepssurvey: Analyse WHO STEPS Survey Data.\n",
         "R package version 0.1.0.\n",
         "https://github.com/drpakhare/stepssurvey"
       )
