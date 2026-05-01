@@ -32,7 +32,7 @@ the World Health Organization (WHO):
 
 - **WHO official STEPS analysis scripts**: The R scripts maintained by
   WHO for STEPS data processing and databook generation
-  (available at <https://github.com/WorldHealthOrganization/stepsKGZ>)
+  (available at <https://github.com/WorldHealthOrganization>)
   served as the authoritative reference for indicator derivation logic,
   survey design setup, weight handling, and data quality filters
   (`smk_cln`, `smkless_cln`). Key methodological decisions in
@@ -322,7 +322,7 @@ countries listed above and reproduce these results independently.
 
 3. World Health Organization. *STEPS data analysis scripts (R).*
    GitHub repository.
-   <https://github.com/WorldHealthOrganization/stepsKGZ>
+   <https://github.com/WorldHealthOrganization>
 
 4. Republic of Moldova STEPS Survey 2021. *WHO NCD Country Fact
    Sheet.* Geneva: WHO, 2022.
