@@ -1,0 +1,15 @@
+indicator,section,men,men_ci_low,men_ci_high,women,women_ci_low,women_ci_high,both,both_ci_low,both_ci_high
+current_smoking,Tobacco,50.3,43.6,57.1,16.7,14.3,19.1,33.9,30.8,37.1
+current_alcohol_30days,Alcohol,66.1,60.9,71.4,44.6,41.1,48.1,55.6,51.8,59.3
+heavy_episodic_drinking,Alcohol,29.5,20.7,38.4,9.4,7.2,11.6,19.7,14.4,24.9
+insufficient_fruit_veg,Diet,73.2,68.0,78.6,59.4,55.3,63.6,66.4,62.4,70.5
+insufficient_pa,Physical Activity,9.1,6.6,11.7,10.8,8.3,13.3,10.0,8.0,11.9
+mean_bmi,Physical Measurements,26.5,25.9,27.0,27.2,26.8,27.7,26.8,26.5,27.2
+overweight_bmi25,Physical Measurements,58.0,50.4,65.5,60.2,57.0,63.4,59.0,54.8,63.3
+obese_bmi30,Physical Measurements,20.1,15.5,24.8,29.8,26.5,33.1,24.8,21.7,27.8
+mean_sbp,Physical Measurements,130.9,129.1,132.7,127.2,125.6,128.8,129.1,127.7,130.5
+raised_bp_or_meds,Physical Measurements,34.5,28.7,40.3,35.0,31.7,38.4,34.8,31.2,38.4
+impaired_fasting_glucose,Biochemical,9.3,6.3,12.2,8.4,6.0,10.7,8.8,6.9,10.7
+raised_glucose_or_meds,Biochemical,6.7,4.7,8.7,7.4,5.8,9.0,7.1,5.8,8.4
+raised_cholesterol_or_meds,Biochemical,40.6,35.0,46.1,40.9,36.7,45.0,40.7,37.0,44.4
+mean_total_cholesterol,Biochemical,4.7,4.5,4.8,4.7,4.6,4.8,4.7,4.6,4.8

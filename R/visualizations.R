@@ -51,16 +51,20 @@ build_steps_plots <- function(indicators, key_indicators, country_name, survey_y
       indicator = factor(indicator, levels = indicator)
     )
 
+  # Position labels beyond the CI upper bound so they never overlap
+  overview_df$label_x <- pmax(overview_df$estimate, overview_df$upper) + 1.5
+  x_max <- max(overview_df$upper, na.rm = TRUE) + 12
+
   plots$overview <- ggplot2::ggplot(overview_df,
       ggplot2::aes(x = estimate, y = indicator, fill = domain)) +
     ggplot2::geom_col(width = 0.6, alpha = 0.9) +
     ggplot2::geom_errorbar(ggplot2::aes(xmin = lower, xmax = upper), height = 0.25, color = "grey40", orientation = "y") +
-    ggplot2::geom_text(ggplot2::aes(label = paste0(round(estimate, 1), "%")),
-              hjust = -0.15, size = 3.2, color = "grey20") +
-    ggplot2::scale_x_continuous(limits = c(0, 105), labels = function(x) paste0(x, "%")) +
+    ggplot2::geom_text(ggplot2::aes(x = label_x, label = paste0(round(estimate, 1), "%")),
+              hjust = 0, size = 3.2, color = "grey20") +
+    ggplot2::scale_x_continuous(limits = c(0, x_max), labels = function(x) paste0(x, "%")) +
     ggplot2::scale_fill_brewer(palette = "Set2") +
     ggplot2::labs(
-      title    = glue::glue("NCD Risk Factor Prevalence - {config$country_name} {config$survey_year}"),
+      title    = glue::glue("NCD Risk Factor Prevalence — {config$country_name} {config$survey_year}"),
       subtitle = "Weighted estimates with 95% confidence intervals",
       x        = "Prevalence (%)",
       y        = NULL,
@@ -69,7 +73,7 @@ build_steps_plots <- function(indicators, key_indicators, country_name, survey_y
     theme_steps +
     ggplot2::theme(
       legend.position = "right",
-      plot.margin = ggplot2::margin(5, 10, 5, 5)
+      plot.margin = ggplot2::margin(5, 15, 5, 5)
     )
 
   # - 2. By-sex comparison (grouped bar chart)
@@ -147,13 +151,16 @@ build_steps_plots <- function(indicators, key_indicators, country_name, survey_y
 make_sex_chart <- function(by_sex_df, title, var_name, steps_colors, theme_steps) {
   if (is.null(by_sex_df)) return(NULL)
 
+  # Position labels above the CI upper bound to avoid overlap
+  by_sex_df$label_y <- pmax(by_sex_df$estimate, by_sex_df$upper) + 0.5
+
   ggplot2::ggplot(by_sex_df, ggplot2::aes(x = sex, y = estimate, fill = sex)) +
     ggplot2::geom_col(width = 0.5, alpha = 0.9) +
     ggplot2::geom_errorbar(ggplot2::aes(ymin = lower, ymax = upper), width = 0.15) +
-    ggplot2::geom_text(ggplot2::aes(label = paste0(round(estimate, 1), "%")),
-              vjust = -0.5, size = 3.5, fontface = "bold") +
+    ggplot2::geom_text(ggplot2::aes(y = label_y, label = paste0(round(estimate, 1), "%")),
+              vjust = -0.3, size = 3.5, fontface = "bold") +
     ggplot2::scale_fill_manual(values = c(Male = steps_colors$male, Female = steps_colors$female)) +
-    ggplot2::scale_y_continuous(labels = function(x) paste0(x, "%"), expand = ggplot2::expansion(mult = c(0, 0.15))) +
+    ggplot2::scale_y_continuous(labels = function(x) paste0(x, "%"), expand = ggplot2::expansion(mult = c(0, 0.18))) +
     ggplot2::labs(title = title, x = NULL, y = "Prevalence (%)") +
     theme_steps +
     ggplot2::theme(legend.position = "none")
@@ -204,20 +211,24 @@ build_forest_plot <- function(key_indicators, country_name, survey_year) {
       indicator = factor(indicator, levels = rev(indicator))
     )
 
+  # Position labels beyond the CI upper bound to avoid overlap
+  df$label_x <- pmax(df$estimate, df$upper) + 1.5
+  x_max <- max(df$upper, na.rm = TRUE) + 12
+
   ggplot2::ggplot(df, ggplot2::aes(x = estimate, y = indicator, colour = domain)) +
     ggplot2::geom_vline(xintercept = c(10, 20, 30, 40, 50), linetype = "dotted",
                         colour = "grey80", linewidth = 0.3) +
     ggplot2::geom_point(size = 3.5) +
     ggplot2::geom_errorbar(ggplot2::aes(xmin = lower, xmax = upper),
                             height = 0.3, linewidth = 0.7, orientation = "y") +
-    ggplot2::geom_text(ggplot2::aes(label = sprintf("%.1f%%", estimate)),
-                       hjust = -0.3, size = 3, colour = "grey30") +
-    ggplot2::scale_x_continuous(limits = c(0, 100),
+    ggplot2::geom_text(ggplot2::aes(x = label_x, label = sprintf("%.1f%%", estimate)),
+                       hjust = 0, size = 3, colour = "grey30") +
+    ggplot2::scale_x_continuous(limits = c(0, x_max),
                                 labels = function(x) paste0(x, "%"),
-                                expand = ggplot2::expansion(mult = c(0, 0.08))) +
+                                expand = ggplot2::expansion(mult = c(0, 0.02))) +
     ggplot2::scale_colour_brewer(palette = "Dark2") +
     ggplot2::labs(
-      title    = glue::glue("NCD Risk Factor Prevalence -- {country_name} {survey_year}"),
+      title    = glue::glue("NCD Risk Factor Prevalence — {country_name} {survey_year}"),
       subtitle = "Point estimates with 95% confidence intervals",
       x        = "Prevalence (%)",
       y        = NULL,
@@ -267,20 +278,35 @@ build_radar_plot <- function(key_indicators, country_name, survey_year) {
         indicator %in% names(short_labels),
         short_labels[indicator],
         substr(indicator, 1, 15)
-      ),
-      short_label = factor(short_label, levels = short_label)
+      )
     )
 
-  ggplot2::ggplot(df, ggplot2::aes(x = short_label, y = estimate, fill = domain)) +
+  # Separate extreme outliers (>60%) to prevent radar distortion
+  outliers <- df |> dplyr::filter(estimate > 60)
+  df_plot <- df |> dplyr::filter(estimate <= 60)
+
+  if (nrow(df_plot) < 3) {
+    # Not enough indicators for a meaningful radar; fall back to all
+    df_plot <- df
+    outliers <- df[0, ]
+  }
+
+  df_plot <- df_plot |>
+    dplyr::mutate(short_label = factor(short_label, levels = short_label))
+
+  # Dynamic y-axis: round up to nearest 10 above max
+  y_max <- ceiling(max(df_plot$estimate, na.rm = TRUE) / 10) * 10
+  y_breaks <- seq(0, y_max, by = ifelse(y_max > 30, 10, 5))
+
+  p <- ggplot2::ggplot(df_plot, ggplot2::aes(x = short_label, y = estimate, fill = domain)) +
     ggplot2::geom_col(width = 0.8, alpha = 0.75, colour = "white", linewidth = 0.3) +
     ggplot2::geom_text(ggplot2::aes(label = sprintf("%.0f%%", estimate)),
                        size = 3, fontface = "bold",
                        position = ggplot2::position_stack(vjust = 0.5)) +
     ggplot2::coord_polar(start = 0) +
-    ggplot2::scale_y_continuous(limits = c(0, 100), breaks = c(25, 50, 75)) +
+    ggplot2::scale_y_continuous(limits = c(0, y_max), breaks = y_breaks) +
     ggplot2::scale_fill_brewer(palette = "Set2") +
     ggplot2::labs(
-      title = glue::glue("{country_name} {survey_year} -- Risk Factor Profile"),
       fill  = "Domain",
       x = NULL, y = NULL
     ) +
@@ -291,6 +317,25 @@ build_radar_plot <- function(key_indicators, country_name, survey_year) {
       panel.grid.major.y = ggplot2::element_line(colour = "grey90"),
       legend.position = "bottom"
     )
+
+  # Build title with outlier callout if needed
+  if (nrow(outliers) > 0) {
+    callout_parts <- vapply(seq_len(nrow(outliers)), function(i) {
+      sprintf("%s: %.0f%%", outliers$short_label[i], outliers$estimate[i])
+    }, character(1))
+    callout <- paste(callout_parts, collapse = " | ")
+
+    p <- p + ggplot2::labs(
+      title    = glue::glue("{country_name} {survey_year} — Risk Factor Profile"),
+      subtitle = callout
+    )
+  } else {
+    p <- p + ggplot2::labs(
+      title = glue::glue("{country_name} {survey_year} — Risk Factor Profile")
+    )
+  }
+
+  p
 }
 
 

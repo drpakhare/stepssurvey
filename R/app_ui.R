@@ -8,11 +8,7 @@ app_ui <- function() {
 
   bslib::page_navbar(
     id       = "main_nav",
-    title    = shiny::span(
-      shiny::img(src = "logo.png", height = "36px",
-                 style = "margin-right:10px; vertical-align:middle;"),
-      "stepssurvey"
-    ),
+    title    = "stepssurvey",
     theme    = bslib::bs_theme(
       version   = 5,
       bootswatch = "flatly",
@@ -68,6 +64,14 @@ app_ui <- function() {
       title = "7. Reports",
       icon  = shiny::icon("file-word"),
       mod_reports_ui("reports")
+    ),
+
+    # -- About ---
+    bslib::nav_spacer(),
+    bslib::nav_panel(
+      title = "About",
+      icon  = shiny::icon("info-circle"),
+      mod_about_ui("about")
     )
   )
 }

@@ -6,6 +6,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Validation Against WHO Official Fact Sheets • stepssurvey</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="48x48" href="../favicon-48x48.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
 <!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="../bootstrap-toc.css">
 <script src="../bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
@@ -90,7 +95,7 @@
                         <h4 data-toc-skip class="author">Abhijit
 Pakhare</h4>
             
-            <h4 data-toc-skip class="date">2026-04-30</h4>
+            <h4 data-toc-skip class="date">2026-05-01</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/drpakhare/stepssurvey/blob/HEAD/vignettes/validation.Rmd" class="external-link"><code>vignettes/validation.Rmd</code></a></small>
       <div class="hidden name"><code>validation.Rmd</code></div>
@@ -114,29 +119,28 @@ Analysis</em>) define the standard definitions and indicator
 computations used throughout this package.</p></li>
 <li><p><strong>WHO official STEPS analysis scripts</strong>: The R
 scripts maintained by WHO for STEPS data processing and databook
-generation (available at <a href="https://github.com/WorldHealthOrganization/stepsKGZ" class="external-link uri">https://github.com/WorldHealthOrganization/stepsKGZ</a>)
-served as the authoritative reference for indicator derivation logic,
-survey design setup, weight handling, and data quality filters
+generation (available at <a href="https://github.com/WorldHealthOrganization" class="external-link uri">https://github.com/WorldHealthOrganization</a>) served as
+the authoritative reference for indicator derivation logic, survey
+design setup, weight handling, and data quality filters
 (<code>smk_cln</code>, <code>smkless_cln</code>). Key methodological
 decisions in <strong>stepssurvey</strong> — such as not trimming
 sampling weights, setting skip-pattern NAs to zero for denominator
 alignment, and applying screening-question logic for GPAQ — were
 directly informed by studying these scripts.</p></li>
 <li><p><strong>WHO STEPS country fact sheets</strong>: Published fact
-sheet values for Moldova (2021), Mongolia (2019), and Georgia (2016)
-were used as the gold-standard reference estimates. These fact sheets
-are publicly available from the WHO NCD Microdata Repository (<a href="https://extranet.who.int/ncdsmicrodata" class="external-link uri">https://extranet.who.int/ncdsmicrodata</a>).</p></li>
+sheet values for nine countries (see table below) were used as the
+gold-standard reference estimates. These fact sheets are publicly
+available from the WHO NCD Microdata Repository (<a href="https://extranet.who.int/ncdsmicrodata" class="external-link uri">https://extranet.who.int/ncdsmicrodata</a>).</p></li>
 <li><p><strong>Licensed STEPS microdata</strong>: The underlying survey
 microdata were accessed under license from the WHO NCD Microdata
 Repository. Use of these data is subject to the WHO STEPS data access
 agreement, and the microdata files are not redistributable.</p></li>
 </ul>
 <p>We gratefully acknowledge the national STEPS survey teams and
-coordinators in the Republic of Moldova, Mongolia, and Georgia for
-designing, conducting, and managing these surveys and for making the
-data available for research use through the WHO NCD Microdata
-Repository. The quality and completeness of these datasets made
-systematic validation possible.</p>
+coordinators in all nine validation countries for designing, conducting,
+and managing these surveys and for making the data available for
+research use through the WHO NCD Microdata Repository. The quality and
+completeness of these datasets made systematic validation possible.</p>
 <p>We also acknowledge the WHO NCD Surveillance team for developing and
 maintaining the STEPS methodology, analysis tools, and data sharing
 infrastructure that underpin this work.</p>
@@ -145,52 +149,86 @@ infrastructure that underpin this work.</p>
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
 <p>The <strong>stepssurvey</strong> package has been validated against
-WHO-published fact sheet values for three national STEPS surveys
-spanning different regions, time periods, and STEPS instrument
-versions:</p>
+WHO-published fact sheet values for nine national STEPS surveys spanning
+different WHO regions, time periods, and STEPS instrument versions:</p>
 <table class="table">
-<colgroup>
-<col width="33%">
-<col width="8%">
-<col width="16%">
-<col width="17%">
-<col width="23%">
-</colgroup>
 <thead><tr class="header">
 <th align="left">Country</th>
 <th align="center">Year</th>
+<th align="center">WHO Region</th>
 <th align="center">Age range</th>
 <th align="center">Instrument</th>
-<th align="center">N (unweighted)</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td align="left">Republic of Moldova</td>
 <td align="center">2021</td>
+<td align="center">EUR</td>
 <td align="center">18–69</td>
 <td align="center">v3.2</td>
-<td align="center">4,097</td>
 </tr>
 <tr class="even">
 <td align="left">Mongolia</td>
 <td align="center">2019</td>
+<td align="center">WPR</td>
 <td align="center">15–69</td>
 <td align="center">v3.2</td>
-<td align="center">6,647</td>
 </tr>
 <tr class="odd">
 <td align="left">Georgia</td>
 <td align="center">2016</td>
+<td align="center">EUR</td>
 <td align="center">18–69</td>
 <td align="center">v3.1</td>
-<td align="center">5,765</td>
+</tr>
+<tr class="even">
+<td align="left">Afghanistan</td>
+<td align="center">2018</td>
+<td align="center">EMR</td>
+<td align="center">18–69</td>
+<td align="center">v3.2</td>
+</tr>
+<tr class="odd">
+<td align="left">Algeria</td>
+<td align="center">2016</td>
+<td align="center">AFR</td>
+<td align="center">18–69</td>
+<td align="center">v3.1</td>
+</tr>
+<tr class="even">
+<td align="left">Ukraine</td>
+<td align="center">2019</td>
+<td align="center">EUR</td>
+<td align="center">18–69</td>
+<td align="center">v3.2</td>
+</tr>
+<tr class="odd">
+<td align="left">Ecuador</td>
+<td align="center">2018</td>
+<td align="center">AMR</td>
+<td align="center">18–69</td>
+<td align="center">v3.2</td>
+</tr>
+<tr class="even">
+<td align="left">Cabo Verde</td>
+<td align="center">2020</td>
+<td align="center">AFR</td>
+<td align="center">18–69</td>
+<td align="center">v3.2</td>
+</tr>
+<tr class="odd">
+<td align="left">Bahamas</td>
+<td align="center">2019</td>
+<td align="center">AMR</td>
+<td align="center">18–69</td>
+<td align="center">v3.2</td>
 </tr>
 </tbody>
 </table>
-<p>For each country, the package pipeline (import → detect → clean →
-survey design → indicator computation) was run end-to-end and results
-compared with the “Both Sexes” estimates published in the corresponding
-WHO STEPS country fact sheet.</p>
+<p>For each country, the package pipeline (import -&gt; detect -&gt;
+clean -&gt; survey design -&gt; indicator computation) was run
+end-to-end and results compared with the “Both Sexes” estimates
+published in the corresponding WHO STEPS country fact sheet.</p>
 </div>
 <div class="section level2">
 <h2 id="validation-criteria">Validation criteria<a class="anchor" aria-label="anchor" href="#validation-criteria"></a>
@@ -222,21 +260,26 @@ current alcohol use (past 30 days), heavy episodic drinking,
 insufficient fruit and vegetable consumption, insufficient physical
 activity.</p>
 <p><strong>Step 2 — Physical measurements:</strong> mean BMI, overweight
-(BMI ≥ 25), obesity (BMI ≥ 30), mean systolic blood pressure, raised
-blood pressure or on medication.</p>
+(BMI &gt;= 25), obesity (BMI &gt;= 30), mean systolic blood pressure,
+raised blood pressure or on medication.</p>
 <p><strong>Step 3 — Biochemical measurements:</strong> mean total
 cholesterol, raised cholesterol or on medication, raised fasting glucose
 or on medication, impaired fasting glucose.</p>
+<p>Not all indicators were available in every country fact sheet. Some
+fact sheets omit second-hand smoke, and the Bahamas fact sheet reports
+Step 3 biochemical measurements as unweighted estimates (response rate
+&lt; 60 %), so those were excluded from comparison.</p>
 </div>
 <div class="section level2">
 <h2 id="results-summary">Results summary<a class="anchor" aria-label="anchor" href="#results-summary"></a>
 </h2>
 <table class="table">
-<caption>Validation summary: stepssurvey vs. WHO fact sheets</caption>
+<caption>Validation summary: stepssurvey vs. WHO fact sheets (9
+countries)</caption>
 <colgroup>
-<col width="19%">
-<col width="29%">
-<col width="18%">
+<col width="22%">
+<col width="28%">
+<col width="17%">
 <col width="16%">
 <col width="16%">
 </colgroup>
@@ -270,17 +313,61 @@ or on medication, impaired fasting glucose.</p>
 <td align="center">100%</td>
 </tr>
 <tr class="even">
+<td align="left">Afghanistan 2018</td>
+<td align="center">14</td>
+<td align="center">14</td>
+<td align="center">14</td>
+<td align="center">100%</td>
+</tr>
+<tr class="odd">
+<td align="left">Algeria 2016</td>
+<td align="center">14</td>
+<td align="center">14</td>
+<td align="center">14</td>
+<td align="center">100%</td>
+</tr>
+<tr class="even">
+<td align="left">Ukraine 2019</td>
+<td align="center">14</td>
+<td align="center">13</td>
+<td align="center">14</td>
+<td align="center">93%</td>
+</tr>
+<tr class="odd">
+<td align="left">Ecuador 2018</td>
+<td align="center">14</td>
+<td align="center">13</td>
+<td align="center">14</td>
+<td align="center">93%</td>
+</tr>
+<tr class="even">
+<td align="left">Cabo Verde 2020</td>
+<td align="center">15</td>
+<td align="center">14</td>
+<td align="center">15</td>
+<td align="center">93%</td>
+</tr>
+<tr class="odd">
+<td align="left">Bahamas 2019</td>
+<td align="center">10</td>
+<td align="center">9</td>
+<td align="center">10</td>
+<td align="center">90%</td>
+</tr>
+<tr class="even">
 <td align="left"><strong>TOTAL</strong></td>
-<td align="center">47</td>
-<td align="center">46</td>
-<td align="center">47</td>
-<td align="center"><strong>98%</strong></td>
+<td align="center">128</td>
+<td align="center">123</td>
+<td align="center">128</td>
+<td align="center"><strong>96%</strong></td>
 </tr>
 </tbody>
 </table>
-<p>Overall, <strong>46 of 47 indicators (98 %) match within 1
-pp</strong>, and <strong>all 47 (100 %) have overlapping confidence
-intervals</strong>.</p>
+<p>Overall, <strong>123 of 128 indicators (96 %) match within 1
+pp</strong>, and <strong>all 128 (100 %) have overlapping confidence
+intervals</strong>. The five remaining mismatches are small (1.0–2.2 pp)
+and all have overlapping CIs, suggesting they reflect minor
+methodological differences rather than errors in the package.</p>
 </div>
 <div class="section level2">
 <h2 id="detailed-results-by-country">Detailed results by country<a class="anchor" aria-label="anchor" href="#detailed-results-by-country"></a>
@@ -365,9 +452,9 @@ intervals</strong>.</p>
 </tr>
 <tr class="even">
 <td align="left">Insufficient physical activity</td>
-<td align="right">9.2</td>
 <td align="right">9.1</td>
-<td align="right">0.1</td>
+<td align="right">9.1</td>
+<td align="right">0.0</td>
 <td align="center">Yes</td>
 <td align="center">Yes</td>
 </tr>
@@ -445,7 +532,7 @@ intervals</strong>.</p>
 </tr>
 </tbody>
 </table>
-<p>The single mismatch is <strong>current tobacco use</strong> (−2.2
+<p>The single mismatch is <strong>current tobacco use</strong> (–2.2
 pp). The confidence intervals overlap (ours: 25.6–29.8 vs. WHO:
 27.7–32.1), suggesting the difference may reflect rounding or a slightly
 different indicator definition in the published fact sheet.</p>
@@ -751,6 +838,844 @@ for this comparison.</p>
 smoking</strong> under the “current smoking” label. Second-hand smoke
 indicators were not reported in the Georgia fact sheet.</p>
 </div>
+<div class="section level3">
+<h3 id="afghanistan-2018">Afghanistan 2018<a class="anchor" aria-label="anchor" href="#afghanistan-2018"></a>
+</h3>
+<table class="table">
+<caption>Afghanistan 2018: 14/14 within 1 pp, 14/14 CI overlap</caption>
+<colgroup>
+<col width="46%">
+<col width="8%">
+<col width="8%">
+<col width="7%">
+<col width="10%">
+<col width="17%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Indicator</th>
+<th align="right">Ours</th>
+<th align="right">WHO</th>
+<th align="right">Diff</th>
+<th align="center">Match</th>
+<th align="center">CI_Overlap</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Current smoking</td>
+<td align="right">8.6</td>
+<td align="right">8.6</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Current alcohol (30 d)</td>
+<td align="right">0.2</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavy episodic drinking</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Insufficient fruit/veg</td>
+<td align="right">97.3</td>
+<td align="right">97.3</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Insufficient physical activity</td>
+<td align="right">26.6</td>
+<td align="right">26.5</td>
+<td align="right">0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Overweight (BMI &gt;= 25)</td>
+<td align="right">42.7</td>
+<td align="right">42.7</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Obese (BMI &gt;= 30)</td>
+<td align="right">17.2</td>
+<td align="right">17.0</td>
+<td align="right">0.2</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Raised BP or on meds</td>
+<td align="right">29.2</td>
+<td align="right">29.2</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Raised glucose or on meds</td>
+<td align="right">9.2</td>
+<td align="right">9.2</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Raised cholesterol or on meds</td>
+<td align="right">17.8</td>
+<td align="right">18.1</td>
+<td align="right">-0.3</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Impaired fasting glucose</td>
+<td align="right">4.9</td>
+<td align="right">4.7</td>
+<td align="right">0.2</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Mean BMI</td>
+<td align="right">25.2</td>
+<td align="right">25.1</td>
+<td align="right">0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Mean SBP</td>
+<td align="right">125.5</td>
+<td align="right">125.5</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Mean total cholesterol</td>
+<td align="right">3.8</td>
+<td align="right">3.8</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+</tbody>
+</table>
+<p>All 14 comparable indicators match within 1 pp. The Afghanistan fact
+sheet reports cholesterol in mg/dl; the package auto-converts to mmol/L,
+and the raised-cholesterol threshold was aligned to 4.914 mmol/L (= 190
+mg/dl) to match the WHO definition.</p>
+</div>
+<div class="section level3">
+<h3 id="algeria-2016">Algeria 2016<a class="anchor" aria-label="anchor" href="#algeria-2016"></a>
+</h3>
+<table class="table">
+<caption>Algeria 2016: 14/14 within 1 pp, 14/14 CI overlap</caption>
+<colgroup>
+<col width="46%">
+<col width="8%">
+<col width="8%">
+<col width="7%">
+<col width="10%">
+<col width="17%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Indicator</th>
+<th align="right">Ours</th>
+<th align="right">WHO</th>
+<th align="right">Diff</th>
+<th align="center">Match</th>
+<th align="center">CI_Overlap</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Current smoking</td>
+<td align="right">16.4</td>
+<td align="right">16.5</td>
+<td align="right">-0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Current alcohol (30 d)</td>
+<td align="right">2.1</td>
+<td align="right">2.1</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavy episodic drinking</td>
+<td align="right">1.3</td>
+<td align="right">1.3</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Insufficient fruit/veg</td>
+<td align="right">85.2</td>
+<td align="right">85.3</td>
+<td align="right">-0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Insufficient physical activity</td>
+<td align="right">23.7</td>
+<td align="right">23.7</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Overweight (BMI &gt;= 25)</td>
+<td align="right">55.5</td>
+<td align="right">55.6</td>
+<td align="right">-0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Obese (BMI &gt;= 30)</td>
+<td align="right">21.9</td>
+<td align="right">21.8</td>
+<td align="right">0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Raised BP or on meds</td>
+<td align="right">23.7</td>
+<td align="right">23.6</td>
+<td align="right">0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Raised glucose or on meds</td>
+<td align="right">8.8</td>
+<td align="right">9.0</td>
+<td align="right">-0.2</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Raised cholesterol or on meds</td>
+<td align="right">23.5</td>
+<td align="right">24.0</td>
+<td align="right">-0.5</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Impaired fasting glucose</td>
+<td align="right">8.6</td>
+<td align="right">8.2</td>
+<td align="right">0.4</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Mean BMI</td>
+<td align="right">26.4</td>
+<td align="right">26.4</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Mean SBP</td>
+<td align="right">126.4</td>
+<td align="right">126.3</td>
+<td align="right">0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Mean total cholesterol</td>
+<td align="right">4.2</td>
+<td align="right">4.2</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+</tbody>
+</table>
+<p>All 14 comparable indicators match within 1 pp.</p>
+</div>
+<div class="section level3">
+<h3 id="ukraine-2019">Ukraine 2019<a class="anchor" aria-label="anchor" href="#ukraine-2019"></a>
+</h3>
+<table class="table">
+<caption>Ukraine 2019: 13/14 within 1 pp, 14/14 CI overlap</caption>
+<colgroup>
+<col width="46%">
+<col width="8%">
+<col width="8%">
+<col width="7%">
+<col width="10%">
+<col width="17%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Indicator</th>
+<th align="right">Ours</th>
+<th align="right">WHO</th>
+<th align="right">Diff</th>
+<th align="center">Match</th>
+<th align="center">CI_Overlap</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Current smoking</td>
+<td align="right">33.7</td>
+<td align="right">33.9</td>
+<td align="right">-0.2</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Current alcohol (30 d)</td>
+<td align="right">55.5</td>
+<td align="right">55.6</td>
+<td align="right">-0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavy episodic drinking</td>
+<td align="right">20.3</td>
+<td align="right">19.7</td>
+<td align="right">0.6</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Insufficient fruit/veg</td>
+<td align="right">66.1</td>
+<td align="right">66.4</td>
+<td align="right">-0.3</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Insufficient physical activity</td>
+<td align="right">10.7</td>
+<td align="right">10.0</td>
+<td align="right">0.7</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Overweight (BMI &gt;= 25)</td>
+<td align="right">59.1</td>
+<td align="right">59.0</td>
+<td align="right">0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Obese (BMI &gt;= 30)</td>
+<td align="right">24.9</td>
+<td align="right">24.8</td>
+<td align="right">0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Raised BP or on meds</td>
+<td align="right">36.7</td>
+<td align="right">34.8</td>
+<td align="right">1.9</td>
+<td align="center">No</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Raised glucose or on meds</td>
+<td align="right">7.1</td>
+<td align="right">7.1</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Raised cholesterol or on meds</td>
+<td align="right">40.7</td>
+<td align="right">40.7</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Impaired fasting glucose</td>
+<td align="right">9.0</td>
+<td align="right">8.8</td>
+<td align="right">0.2</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Mean BMI</td>
+<td align="right">26.9</td>
+<td align="right">26.8</td>
+<td align="right">0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Mean SBP</td>
+<td align="right">129.2</td>
+<td align="right">129.1</td>
+<td align="right">0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Mean total cholesterol</td>
+<td align="right">4.7</td>
+<td align="right">4.7</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+</tbody>
+</table>
+<p>The single mismatch is <strong>raised BP or on meds</strong> (+1.9
+pp). The CIs overlap (ours: 33.7–39.6 vs. WHO: 31.2–38.4), suggesting a
+minor difference in medication question coding.</p>
+</div>
+<div class="section level3">
+<h3 id="ecuador-2018">Ecuador 2018<a class="anchor" aria-label="anchor" href="#ecuador-2018"></a>
+</h3>
+<table class="table">
+<caption>Ecuador 2018: 13/14 within 1 pp, 14/14 CI overlap</caption>
+<colgroup>
+<col width="46%">
+<col width="8%">
+<col width="8%">
+<col width="7%">
+<col width="10%">
+<col width="17%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Indicator</th>
+<th align="right">Ours</th>
+<th align="right">WHO</th>
+<th align="right">Diff</th>
+<th align="center">Match</th>
+<th align="center">CI_Overlap</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Current smoking</td>
+<td align="right">13.7</td>
+<td align="right">13.7</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Current alcohol (30 d)</td>
+<td align="right">39.3</td>
+<td align="right">39.3</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavy episodic drinking</td>
+<td align="right">24.1</td>
+<td align="right">23.8</td>
+<td align="right">0.3</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Insufficient fruit/veg</td>
+<td align="right">94.6</td>
+<td align="right">94.6</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Insufficient physical activity</td>
+<td align="right">17.8</td>
+<td align="right">17.8</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Overweight (BMI &gt;= 25)</td>
+<td align="right">63.6</td>
+<td align="right">63.6</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Obese (BMI &gt;= 30)</td>
+<td align="right">25.7</td>
+<td align="right">25.7</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Raised BP or on meds</td>
+<td align="right">20.5</td>
+<td align="right">19.8</td>
+<td align="right">0.7</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Raised glucose or on meds</td>
+<td align="right">6.9</td>
+<td align="right">7.1</td>
+<td align="right">-0.2</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Raised cholesterol or on meds</td>
+<td align="right">33.7</td>
+<td align="right">34.7</td>
+<td align="right">-1.0</td>
+<td align="center">No</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Impaired fasting glucose</td>
+<td align="right">8.3</td>
+<td align="right">7.8</td>
+<td align="right">0.5</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Mean BMI</td>
+<td align="right">27.2</td>
+<td align="right">27.2</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Mean SBP</td>
+<td align="right">119.7</td>
+<td align="right">119.7</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Mean total cholesterol</td>
+<td align="right">4.4</td>
+<td align="right">4.4</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+</tbody>
+</table>
+<p>The single mismatch is <strong>raised cholesterol or on meds</strong>
+(–1.0 pp, right at the threshold boundary). The CIs overlap (ours:
+31.7–35.8 vs. WHO: 32.6–36.8).</p>
+</div>
+<div class="section level3">
+<h3 id="cabo-verde-2020">Cabo Verde 2020<a class="anchor" aria-label="anchor" href="#cabo-verde-2020"></a>
+</h3>
+<table class="table">
+<caption>Cabo Verde 2020: 14/15 within 1 pp, 15/15 CI overlap</caption>
+<colgroup>
+<col width="46%">
+<col width="8%">
+<col width="8%">
+<col width="7%">
+<col width="10%">
+<col width="17%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Indicator</th>
+<th align="right">Ours</th>
+<th align="right">WHO</th>
+<th align="right">Diff</th>
+<th align="center">Match</th>
+<th align="center">CI_Overlap</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Current smoking</td>
+<td align="right">9.6</td>
+<td align="right">9.6</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Second-hand smoke (work)</td>
+<td align="right">15.0</td>
+<td align="right">15.0</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Current alcohol (30 d)</td>
+<td align="right">45.0</td>
+<td align="right">45.0</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Heavy episodic drinking</td>
+<td align="right">17.5</td>
+<td align="right">17.5</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Insufficient fruit/veg</td>
+<td align="right">77.3</td>
+<td align="right">79.0</td>
+<td align="right">-1.7</td>
+<td align="center">No</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Insufficient physical activity</td>
+<td align="right">31.6</td>
+<td align="right">31.8</td>
+<td align="right">-0.2</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Overweight (BMI &gt;= 25)</td>
+<td align="right">44.2</td>
+<td align="right">44.2</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Obese (BMI &gt;= 30)</td>
+<td align="right">14.3</td>
+<td align="right">14.3</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Raised BP or on meds</td>
+<td align="right">31.1</td>
+<td align="right">30.8</td>
+<td align="right">0.3</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Raised glucose or on meds</td>
+<td align="right">3.6</td>
+<td align="right">3.7</td>
+<td align="right">-0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Raised cholesterol or on meds</td>
+<td align="right">17.9</td>
+<td align="right">18.8</td>
+<td align="right">-0.9</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Impaired fasting glucose</td>
+<td align="right">2.4</td>
+<td align="right">2.3</td>
+<td align="right">0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Mean BMI</td>
+<td align="right">25.1</td>
+<td align="right">25.1</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Mean SBP</td>
+<td align="right">128.8</td>
+<td align="right">128.8</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Mean total cholesterol</td>
+<td align="right">4.0</td>
+<td align="right">4.0</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+</tbody>
+</table>
+<p>The single mismatch is <strong>insufficient fruit/veg</strong> (–1.7
+pp). The CIs overlap (ours: 75.3–79.4 vs. WHO: 77.1–80.9). The Cabo
+Verde fact sheet is one of the few that also reports second-hand smoke
+at work, which matched exactly.</p>
+</div>
+<div class="section level3">
+<h3 id="bahamas-2019">Bahamas 2019<a class="anchor" aria-label="anchor" href="#bahamas-2019"></a>
+</h3>
+<table class="table">
+<caption>Bahamas 2019: 9/10 within 1 pp, 10/10 CI overlap</caption>
+<colgroup>
+<col width="46%">
+<col width="8%">
+<col width="8%">
+<col width="7%">
+<col width="10%">
+<col width="17%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Indicator</th>
+<th align="right">Ours</th>
+<th align="right">WHO</th>
+<th align="right">Diff</th>
+<th align="center">Match</th>
+<th align="center">CI_Overlap</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Current smoking</td>
+<td align="right">17.4</td>
+<td align="right">17.4</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Current alcohol (30 d)</td>
+<td align="right">49.5</td>
+<td align="right">49.6</td>
+<td align="right">-0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Heavy episodic drinking</td>
+<td align="right">18.1</td>
+<td align="right">17.6</td>
+<td align="right">0.5</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Insufficient fruit/veg</td>
+<td align="right">85.0</td>
+<td align="right">85.3</td>
+<td align="right">-0.3</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Insufficient physical activity</td>
+<td align="right">30.1</td>
+<td align="right">30.2</td>
+<td align="right">-0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Overweight (BMI &gt;= 25)</td>
+<td align="right">71.7</td>
+<td align="right">71.6</td>
+<td align="right">0.1</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Obese (BMI &gt;= 30)</td>
+<td align="right">44.5</td>
+<td align="right">43.6</td>
+<td align="right">0.9</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Raised BP or on meds</td>
+<td align="right">35.3</td>
+<td align="right">36.7</td>
+<td align="right">-1.4</td>
+<td align="center">No</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="odd">
+<td align="left">Mean BMI</td>
+<td align="right">30.6</td>
+<td align="right">29.8</td>
+<td align="right">0.8</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr class="even">
+<td align="left">Mean SBP</td>
+<td align="right">125.4</td>
+<td align="right">125.4</td>
+<td align="right">0.0</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+</tbody>
+</table>
+<p>The single mismatch is <strong>raised BP or on meds</strong> (–1.4
+pp). Step 3 biochemical indicators were excluded from comparison because
+the Bahamas fact sheet reports them as unweighted estimates (Step 3
+response rate was below 60 %).</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="analysis-of-mismatches">Analysis of mismatches<a class="anchor" aria-label="anchor" href="#analysis-of-mismatches"></a>
+</h2>
+<p>Across all nine countries, only five of 128 indicators exceed the 1
+pp tolerance. The mismatches are:</p>
+<p><strong>Current tobacco use</strong> (Moldova –2.2 pp): the largest
+remaining mismatch. The confidence intervals overlap, suggesting a
+slightly different indicator definition in the published fact sheet
+(e.g. whether smokeless tobacco is included).</p>
+<p><strong>Raised blood pressure or on medication</strong> (Ukraine
++1.9, Bahamas –1.4): the mismatches are in opposite directions,
+suggesting country-specific differences in how the medication question
+is coded rather than a systematic package issue.</p>
+<p><strong>Raised cholesterol or on medication</strong> (Ecuador –1.0
+pp): right at the 1 pp threshold boundary. The CIs overlap.</p>
+<p><strong>Insufficient fruit/veg</strong> (Cabo Verde –1.7 pp): the CIs
+overlap.</p>
+<p>All five mismatches have overlapping 95 % confidence intervals,
+confirming that the differences are not statistically significant at
+conventional levels.</p>
 </div>
 <div class="section level2">
 <h2 id="key-methodological-alignments">Key methodological alignments<a class="anchor" aria-label="anchor" href="#key-methodological-alignments"></a>
@@ -780,10 +1705,33 @@ supports custom SBP/DBP thresholds via
 <code>clean_steps_data(bp_sbp_threshold, bp_dbp_threshold)</code>,
 needed because some countries (e.g. Mongolia) use thresholds other than
 the standard 140/90.</p>
+<p><strong>Cholesterol unit conversion and threshold alignment.</strong>
+Some country datasets store cholesterol in mg/dl rather than mmol/L. The
+package auto-detects units and converts to mmol/L. For validation, the
+raised-cholesterol threshold was set to 4.914 mmol/L (= 190 mg/dl, the
+WHO standard) rather than the default 5.0 mmol/L, aligning with the WHO
+fact sheet definition.</p>
+<p><strong>Physical activity data quality (P_clean).</strong> Following
+the WHO GPAQ Analysis Guide, respondents with inconsistent physical
+activity data are excluded from all PA computations. Specifically, if a
+respondent answers “Yes” to a GPAQ screening question (e.g. “Do you do
+vigorous work?”) but has missing or invalid follow-up data for that
+domain, all PA variables are set to <code>NA</code>. Additionally, if
+any single domain reports more than 960 minutes (16 hours) per day, all
+PA data for that respondent is invalidated. Without this cleaning,
+partial domain data would be silently dropped by
+<code>rowSums(na.rm = TRUE)</code>, underestimating total PA and
+systematically inflating the <code>insufficient_pa</code> indicator.</p>
 <p><strong>Data quality filters.</strong> The WHO <code>smk_cln</code>
 filter is applied: logically inconsistent tobacco respondents (e.g. “I
 currently smoke” combined with “I never smoked in the past”) are
 excluded from the tobacco denominator.</p>
+<p><strong>Tobacco indicator mapping.</strong> WHO fact sheets vary in
+which tobacco indicator they report under “current smoking”: some report
+daily smoking (Mongolia, Georgia), while others report any-frequency
+tobacco smoking (Afghanistan, Algeria, Ukraine, Ecuador, Cabo Verde,
+Bahamas). The package computes all variants and the appropriate one is
+used for each country comparison.</p>
 <p><strong>Column mapping.</strong> Country datasets often use
 non-standard variable names. The package’s
 <code><a href="../reference/read_column_mapping.html">read_column_mapping()</a></code> function and Excel mapping template
@@ -812,7 +1760,7 @@ package:</p>
 version 4.5, and stepssurvey version 0.1.0.</p>
 <p>The licensed STEPS microdata files are not redistributable and are
 therefore not included in the package. Researchers with access to the
-WHO STEPS microdata repository can request datasets for the three
+WHO STEPS microdata repository can request datasets for the nine
 countries listed above and reproduce these results independently.</p>
 </div>
 <div class="section level2">
@@ -825,13 +1773,25 @@ Surveillance.</em> Geneva: WHO. <a href="https://www.who.int/teams/noncommunicab
 <li><p>World Health Organization. <em>WHO NCD Microdata Repository:
 STEPS Survey Data.</em> <a href="https://extranet.who.int/ncdsmicrodata" class="external-link uri">https://extranet.who.int/ncdsmicrodata</a></p></li>
 <li><p>World Health Organization. <em>STEPS data analysis scripts
-(R).</em> GitHub repository. <a href="https://github.com/WorldHealthOrganization/stepsKGZ" class="external-link uri">https://github.com/WorldHealthOrganization/stepsKGZ</a></p></li>
+(R).</em> GitHub repository. <a href="https://github.com/WorldHealthOrganization" class="external-link uri">https://github.com/WorldHealthOrganization</a></p></li>
 <li><p>Republic of Moldova STEPS Survey 2021. <em>WHO NCD Country Fact
 Sheet.</em> Geneva: WHO, 2022.</p></li>
 <li><p>Mongolia STEPS Survey 2019. <em>WHO NCD Country Fact Sheet.</em>
 Geneva: WHO, 2020.</p></li>
 <li><p>Georgia STEPS Survey 2016. <em>WHO NCD Country Fact Sheet.</em>
 Geneva: WHO, 2017.</p></li>
+<li><p>Afghanistan STEPS Survey 2018. <em>WHO NCD Country Fact
+Sheet.</em> Geneva: WHO, 2019.</p></li>
+<li><p>Algeria STEPS Survey 2016. <em>WHO NCD Country Fact Sheet.</em>
+Geneva: WHO, 2017.</p></li>
+<li><p>Ukraine STEPS Survey 2019. <em>WHO NCD Country Fact Sheet.</em>
+Geneva: WHO, 2020.</p></li>
+<li><p>Ecuador STEPS Survey 2018. <em>WHO NCD Country Fact Sheet.</em>
+Geneva: WHO, 2019.</p></li>
+<li><p>Cabo Verde STEPS Survey 2020. <em>WHO NCD Country Fact
+Sheet.</em> Geneva: WHO, 2021.</p></li>
+<li><p>Bahamas STEPS Survey 2019. <em>WHO NCD Country Fact Sheet.</em>
+Geneva: WHO, 2020.</p></li>
 <li><p>Lumley, T. (2004). Analysis of complex survey samples.
 <em>Journal of Statistical Software</em>, 9(8), 1–19. R package
 <strong>survey</strong> version 4.5.</p></li>

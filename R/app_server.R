@@ -30,4 +30,7 @@ app_server <- function(input, output, session) {
 
   # 7. Reports: consumes config (runs full pipeline internally)
   mod_reports_server("reports", upload_out)
+
+  # About page
+  mod_about_server("about")
 }

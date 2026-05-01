@@ -86,12 +86,12 @@ build_steps_tables <- function(indicators) {
 #' @param digits Number of decimal places (default 1).
 #' @param pct Logical; add percent sign? (default TRUE).
 #'
-#' @return Formatted string like "42.1% (39.2-45.0)".
+#' @return Formatted string like "42.1% (39.2–45.0)".
 #'
 #' @keywords internal
 fmt_est <- function(est, lower, upper, digits = 1, pct = TRUE) {
   suf <- if (pct) "%" else ""
-  glue::glue("{round(est, digits)}{suf} ({round(lower, digits)}-{round(upper, digits)})")
+  glue::glue("{round(est, digits)}{suf} ({round(lower, digits)}–{round(upper, digits)})")
 }
 
 #' Build a single STEPS table

@@ -20,6 +20,11 @@ Useful links:
 \author{
 \strong{Maintainer}: Abhijit Pakhare \email{drpakhare@gmail.com}
 
+Authors:
+\itemize{
+  \item Ankur Joshi
+}
+
 Other contributors:
 \itemize{
   \item WHO STEPS R Pipeline Contributors [contributor]

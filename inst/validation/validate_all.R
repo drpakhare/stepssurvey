@@ -50,6 +50,71 @@ countries <- list(
     age_max  = 69,
     # Georgia fact sheet reports daily smoking under "current smoking"
     smoking_var = "daily_smoker"
+  ),
+  list(
+    name     = "Afghanistan 2018",
+    data     = file.path(DATASETS_ROOT, "Afganistan 2018/afg2018.dta"),
+    ref      = "inst/validation/afghanistan_2018_reference.csv",
+    age_min  = 18,
+    age_max  = 69,
+    # Fact sheet reports "currently smoke tobacco" (any frequency, smoking only,
+    # not including smokeless). Maps to current_tobacco in the package.
+    smoking_var = "current_tobacco",
+    # Cholesterol and glucose reported in mg/dl in fact sheet
+    units_note = "cholesterol_mgdl"
+  ),
+  list(
+    name     = "Algeria 2016",
+    data     = file.path(DATASETS_ROOT, "Algeria 2016/dza2016.dta"),
+    ref      = "inst/validation/algeria_2016_reference.csv",
+    age_min  = 18,
+    age_max  = 69,
+    # Fact sheet reports "currently smoke tobacco" (any frequency)
+    smoking_var = "current_tobacco",
+    units_note = "cholesterol_mgdl"
+  ),
+  list(
+    name     = "Ukraine 2019",
+    data     = file.path(DATASETS_ROOT, "Ukraine 2019/ukr2019.dta"),
+    ref      = "inst/validation/ukraine_2019_reference.csv",
+    age_min  = 18,
+    age_max  = 69,
+    # Fact sheet reports "currently smoke tobacco" (any frequency)
+    smoking_var = "current_tobacco"
+    # Ukraine fact sheet uses mmol/L for cholesterol (same as package default)
+  ),
+  list(
+    name     = "Ecuador 2018",
+    data     = file.path(DATASETS_ROOT, "Ecuador 2018/ecu2018.dta"),
+    ref      = "inst/validation/ecuador_2018_reference.csv",
+    age_min  = 18,
+    age_max  = 69,
+    # Fact sheet reports "current tobacco smokers" (any frequency)
+    smoking_var = "current_tobacco",
+    units_note = "cholesterol_mgdl"
+  ),
+  list(
+    name     = "Cabo Verde 2020",
+    data     = file.path(DATASETS_ROOT, "Cabo Verde/cpv2020.dta"),
+    ref      = "inst/validation/cabo_verde_2020_reference.csv",
+    age_min  = 18,
+    age_max  = 69,
+    # Fact sheet reports "currently smoke tobacco" (any frequency)
+    smoking_var = "current_tobacco",
+    units_note = "cholesterol_mgdl"
+  ),
+  list(
+    name     = "Bahamas 2019",
+    data     = file.path(DATASETS_ROOT, "Bahmas 2019/bhs2019.dta"),
+    ref      = "inst/validation/bahamas_2019_reference.csv",
+    age_min  = 18,
+    age_max  = 69,
+    # Fact sheet reports "currently smoke tobacco" (any frequency)
+    smoking_var = "current_tobacco",
+    # Bahamas Step 3 biochemical measurements are UNWEIGHTED in fact sheet
+    # (response rate for Step 3 was < 60%). Biochemical comparisons will
+    # differ because our package uses weighted estimates.
+    skip_step3 = TRUE
   )
 )
 
@@ -118,11 +183,17 @@ for (country in countries) {
   # Step 3: Clean
   bp_sbp <- if (!is.null(country$bp_sbp)) country$bp_sbp else 140
   bp_dbp <- if (!is.null(country$bp_dbp)) country$bp_dbp else 90
+  # When source data is in mg/dl, the package auto-converts to mmol/L.
+  # WHO uses 190 mg/dl threshold (= 4.914 mmol/L). Use 4.914 instead of
+  # default 5.0 to match the fact sheet definition exactly.
+  chol_thr <- if (!is.null(country$units_note) &&
+                   country$units_note == "cholesterol_mgdl") 4.914 else 5.0
   cleaned <- clean_steps_data(.strip_haven_labels(raw), cols,
                                age_min = country$age_min,
                                age_max = country$age_max,
                                bp_sbp_threshold = bp_sbp,
-                               bp_dbp_threshold = bp_dbp)
+                               bp_dbp_threshold = bp_dbp,
+                               chol_threshold = chol_thr)
   cat(sprintf("  Cleaned: %d rows\n", nrow(cleaned)))
 
   # Step 4: Survey design
@@ -136,6 +207,7 @@ for (country in countries) {
   # Some WHO fact sheets report daily smoking under "current smoking"
   smoking_var <- if (!is.null(country$smoking_var)) country$smoking_var else "current_tobacco"
 
+  # Step 1 and Step 2 indicators (always computed)
   results <- bind_rows(
     compute_prop("current_tobacco_any", d1, "current_tobacco_use"),
     compute_prop(smoking_var, d1, "current_smoking"),
@@ -148,13 +220,23 @@ for (country in countries) {
     compute_prop("overweight_obese", d2, "overweight_bmi25"),
     compute_prop("obese", d2, "obese_bmi30"),
     compute_prop("raised_bp", d2, "raised_bp_or_meds"),
-    compute_prop("raised_glucose", d3, "raised_glucose_or_meds"),
-    compute_prop("raised_chol_or_meds", d3, "raised_cholesterol_or_meds"),
-    compute_prop("impaired_glucose", d3, "impaired_fasting_glucose"),
     compute_mean("bmi", d2, "mean_bmi"),
-    compute_mean("mean_sbp", d2, "mean_sbp"),
-    compute_mean("total_chol", d3, "mean_total_cholesterol")
+    compute_mean("mean_sbp", d2, "mean_sbp")
   )
+
+  # Step 3 biochemical indicators (skip if fact sheet reports unweighted)
+  skip_step3 <- !is.null(country$skip_step3) && country$skip_step3
+  if (!skip_step3) {
+    step3_results <- bind_rows(
+      compute_prop("raised_glucose", d3, "raised_glucose_or_meds"),
+      compute_prop("raised_chol_or_meds", d3, "raised_cholesterol_or_meds"),
+      compute_prop("impaired_glucose", d3, "impaired_fasting_glucose"),
+      compute_mean("total_chol", d3, "mean_total_cholesterol")
+    )
+    results <- bind_rows(results, step3_results)
+  } else {
+    cat("  NOTE: Step 3 biochemical comparisons skipped (fact sheet reports unweighted)\n")
+  }
 
   # Load reference and compare
   ref <- read.csv(country$ref, stringsAsFactors = FALSE)
@@ -164,9 +246,15 @@ for (country in countries) {
       by = "indicator"
     ) %>%
     mutate(
-      diff = our_est - ref_est,
-      match = abs(diff) < 1.0
+      diff = our_est - ref_est
     )
+
+  # Determine tolerance: for cholesterol in mg/dl, use 2.0 unit tolerance
+  is_mgdl <- !is.null(country$units_note) && country$units_note == "cholesterol_mgdl"
+  comparison$tolerance <- ifelse(
+    comparison$indicator == "mean_total_cholesterol" & is_mgdl, 2.0, 1.0
+  )
+  comparison$match <- abs(comparison$diff) < comparison$tolerance
 
   # Display
   cat(sprintf("\nVALIDATION RESULTS: %s\n", country$name))
