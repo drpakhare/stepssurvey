@@ -36,15 +36,15 @@ the World Health Organization (WHO):
   served as the authoritative reference for indicator derivation logic,
   survey design setup, weight handling, and data quality filters
   (`smk_cln`, `smkless_cln`). Key methodological decisions in
-  **stepssurvey** — such as not trimming sampling weights, setting
+  **stepssurvey** --- such as not trimming sampling weights, setting
   skip-pattern NAs to zero for denominator alignment, and applying
-  screening-question logic for GPAQ — were directly informed by
+  screening-question logic for GPAQ --- were directly informed by
   studying these scripts.
 
 - **WHO STEPS country fact sheets**: Published fact sheet values for
-  Moldova (2021), Mongolia (2019), and Georgia (2016) were used as the
-  gold-standard reference estimates. These fact sheets are publicly
-  available from the WHO NCD Microdata Repository
+  nine countries (see table below) were used as the gold-standard
+  reference estimates. These fact sheets are publicly available from
+  the WHO NCD Microdata Repository
   (<https://extranet.who.int/ncdsmicrodata>).
 
 - **Licensed STEPS microdata**: The underlying survey microdata were
@@ -53,11 +53,10 @@ the World Health Organization (WHO):
   microdata files are not redistributable.
 
 We gratefully acknowledge the national STEPS survey teams and
-coordinators in the Republic of Moldova, Mongolia, and Georgia for
-designing, conducting, and managing these surveys and for making the
-data available for research use through the WHO NCD Microdata
-Repository. The quality and completeness of these datasets made
-systematic validation possible.
+coordinators in all nine validation countries for designing, conducting,
+and managing these surveys and for making the data available for
+research use through the WHO NCD Microdata Repository. The quality and
+completeness of these datasets made systematic validation possible.
 
 We also acknowledge the WHO NCD Surveillance team for developing and
 maintaining the STEPS methodology, analysis tools, and data sharing
@@ -66,17 +65,23 @@ infrastructure that underpin this work.
 ## Overview
 
 The **stepssurvey** package has been validated against WHO-published fact
-sheet values for three national STEPS surveys spanning different regions,
-time periods, and STEPS instrument versions:
+sheet values for nine national STEPS surveys spanning different WHO
+regions, time periods, and STEPS instrument versions:
 
-| Country               | Year | Age range | Instrument | N (unweighted) |
-|:----------------------|:----:|:---------:|:----------:|:--------------:|
-| Republic of Moldova   | 2021 | 18--69    | v3.2       | 4,097          |
-| Mongolia              | 2019 | 15--69    | v3.2       | 6,647          |
-| Georgia               | 2016 | 18--69    | v3.1       | 5,765          |
+| Country               | Year | WHO Region | Age range | Instrument |
+|:----------------------|:----:|:----------:|:---------:|:----------:|
+| Republic of Moldova   | 2021 | EUR        | 18--69    | v3.2       |
+| Mongolia              | 2019 | WPR        | 15--69    | v3.2       |
+| Georgia               | 2016 | EUR        | 18--69    | v3.1       |
+| Afghanistan           | 2018 | EMR        | 18--69    | v3.2       |
+| Algeria               | 2016 | AFR        | 18--69    | v3.1       |
+| Ukraine               | 2019 | EUR        | 18--69    | v3.2       |
+| Ecuador               | 2018 | AMR        | 18--69    | v3.2       |
+| Cabo Verde            | 2020 | AFR        | 18--69    | v3.2       |
+| Bahamas               | 2019 | AMR        | 18--69    | v3.2       |
 
-For each country, the package pipeline (import → detect → clean → survey
-design → indicator computation) was run end-to-end and results compared
+For each country, the package pipeline (import -> detect -> clean -> survey
+design -> indicator computation) was run end-to-end and results compared
 with the "Both Sexes" estimates published in the corresponding WHO STEPS
 country fact sheet.
 
@@ -84,10 +89,10 @@ country fact sheet.
 
 Two complementary criteria were used to judge agreement:
 
-1. **Point-estimate match** — the package estimate falls within 1.0
+1. **Point-estimate match** --- the package estimate falls within 1.0
    percentage point (pp) of the fact sheet value for proportions, or 1.0
    unit for continuous measures (BMI, SBP, cholesterol).
-2. **Confidence-interval overlap** — the 95 % confidence intervals from
+2. **Confidence-interval overlap** --- the 95 % confidence intervals from
    the package and the fact sheet share at least one common value.
 
 The 1 pp tolerance accounts for rounding at different stages and minor
@@ -99,29 +104,38 @@ coded as 77 or 88).
 Up to 17 indicators were compared per country, covering all three STEPS
 Steps:
 
-**Step 1 — Behavioural risk factors:**
+**Step 1 --- Behavioural risk factors:**
 current tobacco use, current smoking, second-hand smoke exposure (home
 and workplace), current alcohol use (past 30 days), heavy episodic
 drinking, insufficient fruit and vegetable consumption, insufficient
 physical activity.
 
-**Step 2 — Physical measurements:**
-mean BMI, overweight (BMI ≥ 25), obesity (BMI ≥ 30), mean systolic
+**Step 2 --- Physical measurements:**
+mean BMI, overweight (BMI >= 25), obesity (BMI >= 30), mean systolic
 blood pressure, raised blood pressure or on medication.
 
-**Step 3 — Biochemical measurements:**
+**Step 3 --- Biochemical measurements:**
 mean total cholesterol, raised cholesterol or on medication, raised
 fasting glucose or on medication, impaired fasting glucose.
+
+Not all indicators were available in every country fact sheet. Some fact
+sheets omit second-hand smoke, and the Bahamas fact sheet reports Step 3
+biochemical measurements as unweighted estimates (response rate < 60 %),
+so those were excluded from comparison.
 
 ## Results summary
 
 ```{r summary-table, eval=TRUE, echo=FALSE, results='asis'}
 summary_data <- data.frame(
-  Country = c("Moldova 2021", "Mongolia 2019", "Georgia 2016", "**TOTAL**"),
-  Compared = c(17, 15, 15, 47),
-  Within_1pp = c(16, 15, 15, 46),
-  CI_Overlap = c(17, 15, 15, 47),
-  Match_Rate = c("94%", "100%", "100%", "**98%**")
+  Country = c("Moldova 2021", "Mongolia 2019", "Georgia 2016",
+              "Afghanistan 2018", "Algeria 2016", "Ukraine 2019",
+              "Ecuador 2018", "Cabo Verde 2020", "Bahamas 2019",
+              "**TOTAL**"),
+  Compared = c(17, 15, 15, 14, 14, 14, 14, 15, 10, 128),
+  Within_1pp = c(16, 15, 15, 14, 14, 13, 13, 14, 9, 123),
+  CI_Overlap = c(17, 15, 15, 14, 14, 14, 14, 15, 10, 128),
+  Match_Rate = c("94%", "100%", "100%", "100%", "100%", "93%",
+                 "93%", "93%", "90%", "**96%**")
 )
 
 knitr::kable(
@@ -129,12 +143,15 @@ knitr::kable(
   col.names = c("Country", "Indicators compared", "Within 1 pp",
                 "CI overlap", "Match rate"),
   align = c("l", "c", "c", "c", "c"),
-  caption = "Validation summary: stepssurvey vs. WHO fact sheets"
+  caption = "Validation summary: stepssurvey vs. WHO fact sheets (9 countries)"
 )
 ```
 
-Overall, **46 of 47 indicators (98 %) match within 1 pp**, and
-**all 47 (100 %) have overlapping confidence intervals**.
+Overall, **123 of 128 indicators (96 %) match within 1 pp**, and
+**all 128 (100 %) have overlapping confidence intervals**. The five
+remaining mismatches are small (1.0--2.2 pp) and all have overlapping
+CIs, suggesting they reflect minor methodological differences rather
+than errors in the package.
 
 ## Detailed results by country
 
@@ -153,11 +170,11 @@ mda <- data.frame(
     "Impaired fasting glucose",
     "Mean BMI", "Mean SBP", "Mean total cholesterol"
   ),
-  Ours = c(27.7, 27.6, 23.3, 26.4, 63.2, 13.8, 63.2, 9.2,
+  Ours = c(27.7, 27.6, 23.3, 26.4, 63.2, 13.8, 63.2, 9.1,
            63.9, 22.7, 35.0, 6.3, 28.4, 9.9, 26.9, 129.2, 4.4),
   WHO = c(29.9, 27.6, 23.2, 26.4, 63.2, 13.8, 63.4, 9.1,
           63.9, 22.7, 34.8, 6.3, 27.7, 9.9, 26.9, 129.2, 4.4),
-  Diff = c(-2.2, 0.0, 0.1, 0.0, 0.0, 0.0, -0.2, 0.1,
+  Diff = c(-2.2, 0.0, 0.1, 0.0, 0.0, 0.0, -0.2, 0.0,
            0.0, 0.0, 0.2, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0),
   Match = c("No", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes",
             "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes"),
@@ -169,8 +186,8 @@ knitr::kable(mda, align = c("l", "r", "r", "r", "c", "c"),
              caption = "Moldova 2021: 16/17 within 1 pp, 17/17 CI overlap")
 ```
 
-The single mismatch is **current tobacco use** (−2.2 pp). The confidence
-intervals overlap (ours: 25.6–29.8 vs. WHO: 27.7–32.1), suggesting the
+The single mismatch is **current tobacco use** (--2.2 pp). The confidence
+intervals overlap (ours: 25.6--29.8 vs. WHO: 27.7--32.1), suggesting the
 difference may reflect rounding or a slightly different indicator
 definition in the published fact sheet.
 
@@ -245,6 +262,244 @@ As with Mongolia, the Georgia WHO fact sheet reports **daily smoking**
 under the "current smoking" label. Second-hand smoke indicators were
 not reported in the Georgia fact sheet.
 
+### Afghanistan 2018
+
+```{r afghanistan, eval=TRUE, echo=FALSE, results='asis'}
+afg <- data.frame(
+  Indicator = c(
+    "Current smoking", "Current alcohol (30 d)",
+    "Heavy episodic drinking", "Insufficient fruit/veg",
+    "Insufficient physical activity",
+    "Overweight (BMI >= 25)", "Obese (BMI >= 30)",
+    "Raised BP or on meds",
+    "Raised glucose or on meds", "Raised cholesterol or on meds",
+    "Impaired fasting glucose",
+    "Mean BMI", "Mean SBP", "Mean total cholesterol"
+  ),
+  Ours = c(8.6, 0.2, 0.1, 97.3, 26.6,
+           42.7, 17.2, 29.2, 9.2, 17.8, 4.9,
+           25.2, 125.5, 3.8),
+  WHO = c(8.6, 0.2, 0.1, 97.3, 26.5,
+          42.7, 17.0, 29.2, 9.2, 18.1, 4.7,
+          25.1, 125.5, 3.8),
+  Diff = c(0.0, 0.0, 0.0, 0.0, 0.1,
+           0.0, 0.2, 0.0, 0.0, -0.3, 0.2,
+           0.1, 0.0, 0.0),
+  Match = rep("Yes", 14),
+  CI_Overlap = rep("Yes", 14)
+)
+
+knitr::kable(afg, align = c("l", "r", "r", "r", "c", "c"),
+             caption = "Afghanistan 2018: 14/14 within 1 pp, 14/14 CI overlap")
+```
+
+All 14 comparable indicators match within 1 pp. The Afghanistan fact
+sheet reports cholesterol in mg/dl; the package auto-converts to mmol/L,
+and the raised-cholesterol threshold was aligned to 4.914 mmol/L
+(= 190 mg/dl) to match the WHO definition.
+
+### Algeria 2016
+
+```{r algeria, eval=TRUE, echo=FALSE, results='asis'}
+dza <- data.frame(
+  Indicator = c(
+    "Current smoking", "Current alcohol (30 d)",
+    "Heavy episodic drinking", "Insufficient fruit/veg",
+    "Insufficient physical activity",
+    "Overweight (BMI >= 25)", "Obese (BMI >= 30)",
+    "Raised BP or on meds",
+    "Raised glucose or on meds", "Raised cholesterol or on meds",
+    "Impaired fasting glucose",
+    "Mean BMI", "Mean SBP", "Mean total cholesterol"
+  ),
+  Ours = c(16.4, 2.1, 1.3, 85.2, 23.7,
+           55.5, 21.9, 23.7, 8.8, 23.5, 8.6,
+           26.4, 126.4, 4.2),
+  WHO = c(16.5, 2.1, 1.3, 85.3, 23.7,
+          55.6, 21.8, 23.6, 9.0, 24.0, 8.2,
+          26.4, 126.3, 4.2),
+  Diff = c(-0.1, 0.0, 0.0, -0.1, 0.0,
+           -0.1, 0.1, 0.1, -0.2, -0.5, 0.4,
+           0.0, 0.1, 0.0),
+  Match = rep("Yes", 14),
+  CI_Overlap = rep("Yes", 14)
+)
+
+knitr::kable(dza, align = c("l", "r", "r", "r", "c", "c"),
+             caption = "Algeria 2016: 14/14 within 1 pp, 14/14 CI overlap")
+```
+
+All 14 comparable indicators match within 1 pp.
+
+### Ukraine 2019
+
+```{r ukraine, eval=TRUE, echo=FALSE, results='asis'}
+ukr <- data.frame(
+  Indicator = c(
+    "Current smoking", "Current alcohol (30 d)",
+    "Heavy episodic drinking", "Insufficient fruit/veg",
+    "Insufficient physical activity",
+    "Overweight (BMI >= 25)", "Obese (BMI >= 30)",
+    "Raised BP or on meds",
+    "Raised glucose or on meds", "Raised cholesterol or on meds",
+    "Impaired fasting glucose",
+    "Mean BMI", "Mean SBP", "Mean total cholesterol"
+  ),
+  Ours = c(33.7, 55.5, 20.3, 66.1, 10.7,
+           59.1, 24.9, 36.7, 7.1, 40.7, 9.0,
+           26.9, 129.2, 4.7),
+  WHO = c(33.9, 55.6, 19.7, 66.4, 10.0,
+          59.0, 24.8, 34.8, 7.1, 40.7, 8.8,
+          26.8, 129.1, 4.7),
+  Diff = c(-0.2, -0.1, 0.6, -0.3, 0.7,
+           0.1, 0.1, 1.9, 0.0, 0.0, 0.2,
+           0.1, 0.1, 0.0),
+  Match = c("Yes", "Yes", "Yes", "Yes", "Yes",
+            "Yes", "Yes", "No", "Yes", "Yes", "Yes",
+            "Yes", "Yes", "Yes"),
+  CI_Overlap = rep("Yes", 14)
+)
+
+knitr::kable(ukr, align = c("l", "r", "r", "r", "c", "c"),
+             caption = "Ukraine 2019: 13/14 within 1 pp, 14/14 CI overlap")
+```
+
+The single mismatch is **raised BP or on meds** (+1.9 pp). The CIs
+overlap (ours: 33.7--39.6 vs. WHO: 31.2--38.4), suggesting a minor
+difference in medication question coding.
+
+### Ecuador 2018
+
+```{r ecuador, eval=TRUE, echo=FALSE, results='asis'}
+ecu <- data.frame(
+  Indicator = c(
+    "Current smoking", "Current alcohol (30 d)",
+    "Heavy episodic drinking", "Insufficient fruit/veg",
+    "Insufficient physical activity",
+    "Overweight (BMI >= 25)", "Obese (BMI >= 30)",
+    "Raised BP or on meds",
+    "Raised glucose or on meds", "Raised cholesterol or on meds",
+    "Impaired fasting glucose",
+    "Mean BMI", "Mean SBP", "Mean total cholesterol"
+  ),
+  Ours = c(13.7, 39.3, 24.1, 94.6, 17.8,
+           63.6, 25.7, 20.5, 6.9, 33.7, 8.3,
+           27.2, 119.7, 4.4),
+  WHO = c(13.7, 39.3, 23.8, 94.6, 17.8,
+          63.6, 25.7, 19.8, 7.1, 34.7, 7.8,
+          27.2, 119.7, 4.4),
+  Diff = c(0.0, 0.0, 0.3, 0.0, 0.0,
+           0.0, 0.0, 0.7, -0.2, -1.0, 0.5,
+           0.0, 0.0, 0.0),
+  Match = c("Yes", "Yes", "Yes", "Yes", "Yes",
+            "Yes", "Yes", "Yes", "Yes", "No", "Yes",
+            "Yes", "Yes", "Yes"),
+  CI_Overlap = rep("Yes", 14)
+)
+
+knitr::kable(ecu, align = c("l", "r", "r", "r", "c", "c"),
+             caption = "Ecuador 2018: 13/14 within 1 pp, 14/14 CI overlap")
+```
+
+The single mismatch is **raised cholesterol or on meds** (--1.0 pp,
+right at the threshold boundary). The CIs overlap (ours: 31.7--35.8
+vs. WHO: 32.6--36.8).
+
+### Cabo Verde 2020
+
+```{r caboverde, eval=TRUE, echo=FALSE, results='asis'}
+cpv <- data.frame(
+  Indicator = c(
+    "Current smoking", "Second-hand smoke (work)",
+    "Current alcohol (30 d)",
+    "Heavy episodic drinking", "Insufficient fruit/veg",
+    "Insufficient physical activity",
+    "Overweight (BMI >= 25)", "Obese (BMI >= 30)",
+    "Raised BP or on meds",
+    "Raised glucose or on meds", "Raised cholesterol or on meds",
+    "Impaired fasting glucose",
+    "Mean BMI", "Mean SBP", "Mean total cholesterol"
+  ),
+  Ours = c(9.6, 15.0, 45.0, 17.5, 77.3, 31.6,
+           44.2, 14.3, 31.1, 3.6, 17.9, 2.4,
+           25.1, 128.8, 4.0),
+  WHO = c(9.6, 15.0, 45.0, 17.5, 79.0, 31.8,
+          44.2, 14.3, 30.8, 3.7, 18.8, 2.3,
+          25.1, 128.8, 4.0),
+  Diff = c(0.0, 0.0, 0.0, 0.0, -1.7, -0.2,
+           0.0, 0.0, 0.3, -0.1, -0.9, 0.1,
+           0.0, 0.0, 0.0),
+  Match = c("Yes", "Yes", "Yes", "Yes", "No", "Yes",
+            "Yes", "Yes", "Yes", "Yes", "Yes", "Yes",
+            "Yes", "Yes", "Yes"),
+  CI_Overlap = rep("Yes", 15)
+)
+
+knitr::kable(cpv, align = c("l", "r", "r", "r", "c", "c"),
+             caption = "Cabo Verde 2020: 14/15 within 1 pp, 15/15 CI overlap")
+```
+
+The single mismatch is **insufficient fruit/veg** (--1.7 pp). The CIs
+overlap (ours: 75.3--79.4 vs. WHO: 77.1--80.9). The Cabo Verde fact
+sheet is one of the few that also reports second-hand smoke at work,
+which matched exactly.
+
+### Bahamas 2019
+
+```{r bahamas, eval=TRUE, echo=FALSE, results='asis'}
+bhs <- data.frame(
+  Indicator = c(
+    "Current smoking", "Current alcohol (30 d)",
+    "Heavy episodic drinking", "Insufficient fruit/veg",
+    "Insufficient physical activity",
+    "Overweight (BMI >= 25)", "Obese (BMI >= 30)",
+    "Raised BP or on meds",
+    "Mean BMI", "Mean SBP"
+  ),
+  Ours = c(17.4, 49.5, 18.1, 85.0, 30.1,
+           71.7, 44.5, 35.3, 30.6, 125.4),
+  WHO = c(17.4, 49.6, 17.6, 85.3, 30.2,
+          71.6, 43.6, 36.7, 29.8, 125.4),
+  Diff = c(0.0, -0.1, 0.5, -0.3, -0.1,
+           0.1, 0.9, -1.4, 0.8, 0.0),
+  Match = c("Yes", "Yes", "Yes", "Yes", "Yes",
+            "Yes", "Yes", "No", "Yes", "Yes"),
+  CI_Overlap = rep("Yes", 10)
+)
+
+knitr::kable(bhs, align = c("l", "r", "r", "r", "c", "c"),
+             caption = "Bahamas 2019: 9/10 within 1 pp, 10/10 CI overlap")
+```
+
+The single mismatch is **raised BP or on meds** (--1.4 pp). Step 3
+biochemical indicators were excluded from comparison because the Bahamas
+fact sheet reports them as unweighted estimates (Step 3 response rate
+was below 60 %).
+
+## Analysis of mismatches
+
+Across all nine countries, only five of 128 indicators exceed the
+1 pp tolerance. The mismatches are:
+
+**Current tobacco use** (Moldova --2.2 pp): the largest remaining
+mismatch. The confidence intervals overlap, suggesting a slightly
+different indicator definition in the published fact sheet (e.g.
+whether smokeless tobacco is included).
+
+**Raised blood pressure or on medication** (Ukraine +1.9, Bahamas
+--1.4): the mismatches are in opposite directions, suggesting
+country-specific differences in how the medication question is coded
+rather than a systematic package issue.
+
+**Raised cholesterol or on medication** (Ecuador --1.0 pp): right at
+the 1 pp threshold boundary. The CIs overlap.
+
+**Insufficient fruit/veg** (Cabo Verde --1.7 pp): the CIs overlap.
+
+All five mismatches have overlapping 95 % confidence intervals,
+confirming that the differences are not statistically significant at
+conventional levels.
+
 ## Key methodological alignments
 
 During validation, several methodological details were identified where
@@ -275,12 +530,37 @@ SBP/DBP thresholds via `clean_steps_data(bp_sbp_threshold, bp_dbp_threshold)`,
 needed because some countries (e.g. Mongolia) use thresholds other than
 the standard 140/90.
 
+**Cholesterol unit conversion and threshold alignment.** Some country
+datasets store cholesterol in mg/dl rather than mmol/L. The package
+auto-detects units and converts to mmol/L. For validation, the
+raised-cholesterol threshold was set to 4.914 mmol/L (= 190 mg/dl,
+the WHO standard) rather than the default 5.0 mmol/L, aligning with
+the WHO fact sheet definition.
+
+**Physical activity data quality (P\_clean).** Following the WHO GPAQ
+Analysis Guide, respondents with inconsistent physical activity data
+are excluded from all PA computations. Specifically, if a respondent
+answers "Yes" to a GPAQ screening question (e.g. "Do you do vigorous
+work?") but has missing or invalid follow-up data for that domain, all
+PA variables are set to `NA`. Additionally, if any single domain
+reports more than 960 minutes (16 hours) per day, all PA data for that
+respondent is invalidated. Without this cleaning, partial domain data
+would be silently dropped by `rowSums(na.rm = TRUE)`, underestimating
+total PA and systematically inflating the `insufficient_pa` indicator.
+
 **Data quality filters.** The WHO `smk_cln` filter is applied: logically
 inconsistent tobacco respondents (e.g. "I currently smoke" combined with
 "I never smoked in the past") are excluded from the tobacco denominator.
 
+**Tobacco indicator mapping.** WHO fact sheets vary in which tobacco
+indicator they report under "current smoking": some report daily smoking
+(Mongolia, Georgia), while others report any-frequency tobacco smoking
+(Afghanistan, Algeria, Ukraine, Ecuador, Cabo Verde, Bahamas). The
+package computes all variants and the appropriate one is used for each
+country comparison.
+
 **Column mapping.** Country datasets often use non-standard variable
-names.  The package's `read_column_mapping()` function and Excel mapping
+names. The package's `read_column_mapping()` function and Excel mapping
 template were used to handle datasets where auto-detection required
 manual overrides.
 
@@ -307,7 +587,7 @@ stepssurvey version `r packageVersion("stepssurvey")`.
 
 The licensed STEPS microdata files are not redistributable and are
 therefore not included in the package. Researchers with access to the
-WHO STEPS microdata repository can request datasets for the three
+WHO STEPS microdata repository can request datasets for the nine
 countries listed above and reproduce these results independently.
 
 ## References
@@ -333,6 +613,24 @@ countries listed above and reproduce these results independently.
 6. Georgia STEPS Survey 2016. *WHO NCD Country Fact Sheet.* Geneva:
    WHO, 2017.
 
-7. Lumley, T. (2004). Analysis of complex survey samples. *Journal of
-   Statistical Software*, 9(8), 1--19. R package **survey** version
-   `r packageVersion("survey")`.
+7. Afghanistan STEPS Survey 2018. *WHO NCD Country Fact Sheet.*
+   Geneva: WHO, 2019.
+
+8. Algeria STEPS Survey 2016. *WHO NCD Country Fact Sheet.* Geneva:
+   WHO, 2017.
+
+9. Ukraine STEPS Survey 2019. *WHO NCD Country Fact Sheet.* Geneva:
+   WHO, 2020.
+
+10. Ecuador STEPS Survey 2018. *WHO NCD Country Fact Sheet.* Geneva:
+    WHO, 2019.
+
+11. Cabo Verde STEPS Survey 2020. *WHO NCD Country Fact Sheet.*
+    Geneva: WHO, 2021.
+
+12. Bahamas STEPS Survey 2019. *WHO NCD Country Fact Sheet.* Geneva:
+    WHO, 2020.
+
+13. Lumley, T. (2004). Analysis of complex survey samples. *Journal of
+    Statistical Software*, 9(8), 1--19. R package **survey** version
+    `r packageVersion("survey")`.

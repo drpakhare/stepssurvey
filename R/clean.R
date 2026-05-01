@@ -603,6 +603,12 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69,
     dplyr::if_else(v == 1, TRUE, dplyr::if_else(v == 2, FALSE, NA))
   }
 
+  # Track respondents with implausible PA (>960 min/day in any domain).
+
+  # WHO GPAQ guide: if daily time exceeds 16 hours in ANY single domain,
+  # ALL physical activity data for that respondent should be set to NA.
+  pa_implausible <- rep(FALSE, nrow(d))
+
   # Helper to compute domain min/day, respecting screening question
   .domain_min_day <- function(screen_col, days_col, hrs_col, min_col) {
     # If screening question is available and answered "No" → 0
@@ -614,9 +620,10 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69,
     daily_time <- hrs * 60 + mins  # time per session (= per day)
     result <- (days * daily_time) / 7  # average min/day over the week
 
-    # WHO cleaning: if daily time > 960 min in this domain, set ALL PA to NA
-    # (flagged here; cleaned up after all domains are computed)
-    result <- dplyr::if_else(!is.na(daily_time) & daily_time > 960, NA_real_, result)
+    # WHO cleaning: if daily time > 960 min in this domain, flag the
+    # respondent for removal from ALL PA computations (applied after
+    # all domains are computed)
+    pa_implausible <<- pa_implausible | (!is.na(daily_time) & daily_time > 960)
 
     # Screening = No → domain contribution is 0
     if (!is.null(screen)) {
@@ -689,6 +696,74 @@ clean_steps_data <- function(data, cols, age_min = 18, age_max = 69,
   if (length(all_pa_cols) > 0) {
     d$pa_minutes_per_day <- rowSums(d[all_pa_cols], na.rm = TRUE)
     d$pa_minutes_per_day[rowSums(!is.na(d[all_pa_cols])) == 0] <- NA
+  }
+
+  # WHO GPAQ cleaning rule 1: if ANY domain had daily time > 960 min, set ALL
+  # PA data for that respondent to NA (implausible data)
+  if (any(pa_implausible, na.rm = TRUE)) {
+    n_implausible <- sum(pa_implausible, na.rm = TRUE)
+    pa_domain_vars <- intersect(
+      c("pa_work_vig_min_day", "pa_work_mod_min_day", "pa_work_min_day",
+        "pa_transport_min_day",
+        "pa_rec_vig_min_day", "pa_rec_mod_min_day", "pa_recreation_min_day",
+        "pa_minutes_per_day"),
+      names(d)
+    )
+    for (pv in pa_domain_vars) {
+      d[[pv]][pa_implausible] <- NA
+    }
+    # Also invalidate pre-provided met_total and derived indicators
+    if ("met_total" %in% names(d)) {
+      d$met_total[pa_implausible] <- NA
+      d$insufficient_pa[pa_implausible] <- NA
+      if ("low_pa" %in% names(d)) d$low_pa[pa_implausible] <- NA
+      if ("pa_category" %in% names(d)) d$pa_category[pa_implausible] <- NA
+    }
+    message(sprintf("    \u2713 %d respondent(s) with >960 min/day in a PA domain: all PA set to NA", n_implausible))
+  }
+
+  # WHO GPAQ cleaning rule 2 (P_clean): if a respondent answered "Yes" to a
+  # screening question but has NA follow-up data for that domain, their PA
+  # data is inconsistent. WHO excludes such respondents from ALL PA analysis.
+  # Without this, rowSums(na.rm=TRUE) silently drops the invalid domain,
+  # underestimating total PA and inflating insufficient_pa.
+  pa_inconsistent <- rep(FALSE, nrow(d))
+  screen_domain_pairs <- list(
+    list(screen = "pa_work_vig",  domain = "pa_work_vig_min_day"),
+    list(screen = "pa_work_mod",  domain = "pa_work_mod_min_day"),
+    list(screen = "pa_transport", domain = "pa_transport_min_day"),
+    list(screen = "pa_rec_vig",   domain = "pa_rec_vig_min_day"),
+    list(screen = "pa_rec_mod",   domain = "pa_rec_mod_min_day")
+  )
+  for (pair in screen_domain_pairs) {
+    sc <- pair$screen
+    dm <- pair$domain
+    if (has(sc) && dm %in% names(d)) {
+      screen_yes <- .screen_yes(d[[cols[[sc]]]])
+      # Inconsistent: screening = Yes but domain result is NA
+      is_incon <- !is.na(screen_yes) & screen_yes == TRUE & is.na(d[[dm]])
+      pa_inconsistent <- pa_inconsistent | is_incon
+    }
+  }
+  if (any(pa_inconsistent, na.rm = TRUE)) {
+    n_incon <- sum(pa_inconsistent, na.rm = TRUE)
+    pa_all_vars <- intersect(
+      c("pa_work_vig_min_day", "pa_work_mod_min_day", "pa_work_min_day",
+        "pa_transport_min_day",
+        "pa_rec_vig_min_day", "pa_rec_mod_min_day", "pa_recreation_min_day",
+        "pa_minutes_per_day"),
+      names(d)
+    )
+    for (pv in pa_all_vars) {
+      d[[pv]][pa_inconsistent] <- NA
+    }
+    if ("met_total" %in% names(d)) {
+      d$met_total[pa_inconsistent] <- NA
+      d$insufficient_pa[pa_inconsistent] <- NA
+      if ("low_pa" %in% names(d)) d$low_pa[pa_inconsistent] <- NA
+      if ("pa_category" %in% names(d)) d$pa_category[pa_inconsistent] <- NA
+    }
+    message(sprintf("    \u2713 %d respondent(s) with inconsistent GPAQ data (screen=Yes but domain=NA): all PA set to NA", n_incon))
   }
 
   message("    \u2713 GPAQ screening questions used to set non-active domains to 0")
