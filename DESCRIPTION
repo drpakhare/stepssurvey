@@ -9,13 +9,14 @@ Authors@R: c(
     person("WHO STEPS R Pipeline Contributors", role = "ctb")
   )
 Description: Provides a complete analysis pipeline for the WHO STEPwise
-    Approach to NCD Risk Factor Surveillance (STEPS). Imports raw survey
-    data (CSV, Excel, Stata, SPSS), applies WHO-standard cleaning and
-    recoding, sets up complex survey designs, computes all standard NCD
-    indicators (tobacco, alcohol, diet, physical activity, anthropometry,
-    blood pressure, biochemical), and generates publication-ready tables,
-    visualisations, and Word/HTML reports (fact sheet, data book, country
-    report).
+    Approach to NCD Risk Factor Surveillance (STEPS) as described in
+    Riley et al. (2016) <doi:10.2105/AJPH.2015.302962>. Imports raw
+    survey data (CSV, 'Excel', 'Stata', 'SPSS'), applies WHO-standard
+    cleaning and recoding, sets up complex survey designs, computes all
+    standard NCD indicators (tobacco, alcohol, diet, physical activity,
+    anthropometry, blood pressure, biochemical), and generates
+    publication-ready tables, visualisations, and Word/HTML reports
+    (fact sheet, data book, country report).
 License: MIT + file LICENSE
 URL: https://github.com/drpakhare/stepssurvey
 BugReports: https://github.com/drpakhare/stepssurvey/issues
