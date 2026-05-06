@@ -34,8 +34,11 @@ as the headline tobacco indicator.  The function also reports
 \code{current_smoker} and \code{current_smokeless} separately if available.
 }
 \examples{
-\dontrun{
-  design <- setup_survey_design(data = survey_data)
+\donttest{
+  test_data <- generate_test_data(n = 500, seed = 42)
+  cols <- detect_steps_columns(test_data)
+  clean <- clean_steps_data(test_data, cols)
+  design <- setup_survey_design(clean)
   tobacco_results <- compute_tobacco_indicators(design)
 }
 }

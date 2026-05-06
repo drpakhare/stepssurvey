@@ -28,10 +28,14 @@ The last row shows the total (age-standardised) estimate.
 Column header styling uses WHO STEPS branding (dark blue background).
 }
 \examples{
-\dontrun{
-  indicators <- compute_steps_indicators(design, config)
-  tables <- build_steps_tables(indicators)
-  names(tables)  # View available tables
+\donttest{
+  test_data <- generate_test_data(n = 500, seed = 42)
+  cols <- detect_steps_columns(test_data)
+  clean <- clean_steps_data(test_data, cols)
+  design <- setup_survey_design(clean)
+  all_ind <- compute_all_indicators(design)
+  tables <- build_steps_tables(all_ind$results)
+  names(tables)
 }
 
 }

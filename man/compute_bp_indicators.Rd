@@ -30,8 +30,11 @@ Calculates prevalence of raised blood pressure and mean systolic and
 diastolic blood pressure from a survey design object.
 }
 \examples{
-\dontrun{
-  design <- setup_survey_design(data = survey_data)
+\donttest{
+  test_data <- generate_test_data(n = 500, seed = 42)
+  cols <- detect_steps_columns(test_data)
+  clean <- clean_steps_data(test_data, cols)
+  design <- setup_survey_design(clean)
   bp_results <- compute_bp_indicators(design)
 }
 }

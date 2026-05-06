@@ -18,11 +18,12 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Abhijit Pakhare \email{drpakhare@gmail.com}
+\strong{Maintainer}: Abhijit Pakhare \email{abhijit.cfm@aiimsbhopal.edu.in}
 
 Authors:
 \itemize{
   \item Ankur Joshi
+  \item Lena Charlette
 }
 
 Other contributors:

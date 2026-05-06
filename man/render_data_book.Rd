@@ -4,13 +4,13 @@
 \alias{render_data_book}
 \title{Render STEPS Data Book report}
 \usage{
-render_data_book(config, output_dir = "outputs")
+render_data_book(config, output_dir = tempdir())
 }
 \arguments{
 \item{config}{A list from \code{\link[=steps_config]{steps_config()}} with survey metadata.
 Expected to have \code{country_name}, \code{survey_year}, \code{age_min}, \code{age_max}.}
 
-\item{output_dir}{Directory for output reports (default "outputs").}
+\item{output_dir}{Directory for output reports (default \code{tempdir()}).}
 }
 \value{
 Path to generated Word document (invisibly).

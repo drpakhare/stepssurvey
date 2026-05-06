@@ -10,7 +10,7 @@ run_steps_pipeline(
   survey_year = 2024,
   age_min = 18,
   age_max = 69,
-  output_dir = "outputs",
+  output_dir = tempdir(),
   render_reports = TRUE,
   mapping_file = NULL
 )
@@ -26,7 +26,7 @@ run_steps_pipeline(
 
 \item{age_max}{Maximum age in years (default 69).}
 
-\item{output_dir}{Directory for all outputs (default "outputs").}
+\item{output_dir}{Directory for all outputs (default \code{tempdir()}).}
 
 \item{render_reports}{Logical; render Word documents? (default TRUE).}
 

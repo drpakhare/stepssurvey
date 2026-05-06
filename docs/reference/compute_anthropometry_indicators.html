@@ -110,10 +110,178 @@ mean BMI and waist circumference, from a survey design object.</p>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span>  <span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="setup_survey_design.html">setup_survey_design</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">survey_data</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span>  <span class="va">test_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="generate_test_data.html">generate_test_data</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">500</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> ✓ Generated test data: 500 rows × 28 columns</span>
+<span class="r-in"><span>  <span class="va">cols</span> <span class="op">&lt;-</span> <span class="fu"><a href="detect_steps_columns.html">detect_steps_columns</a></span><span class="op">(</span><span class="va">test_data</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Detecting STEPS columns...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Age: 'age'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Sex: 'sex'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Age range group</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Valid/consent flag</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Urban/rural</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Weight Step 1 (behavioural): 'wt_final'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Weight Step 2 (physical)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Weight Step 3 (biochemical)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Stratum: 'stratum'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ PSU: 'psu'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Current tobacco use: 't1'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Daily tobacco use: 't2'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Age started smoking</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Smoking duration</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Manufactured cigarettes/day</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Manufactured cigarettes/week</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Hand-rolled cigarettes/day</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Pipes/day</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Cigars/day</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Shisha/day</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Quit attempt past 12m</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Advised to quit by HCP</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Past smoking</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Past daily smoking</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Quitting age</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Duration since quitting</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Current smokeless tobacco</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Daily smokeless tobacco</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Snuff mouth/day</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Chewing tobacco/day</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Betel quid/day</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Past smokeless tobacco</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Past daily smokeless</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Second-hand smoke at home</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Second-hand smoke at workplace</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Any tobacco product</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   → Skipped 'a1' for Ever consumed alcohol (label '' does not match)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Ever consumed alcohol</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Alcohol past 12 months</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   → Skipped 'a5' for Current alcohol use (past 30 days) (label '' does not match)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   → Skipped 'a1' for Current alcohol use (past 30 days) (label '' does not match)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Current alcohol use (past 30 days)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Heavy episodic drinking</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Stopped drinking</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Alcohol frequency (past 12m)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Drinking occasions (past 30d)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Drinks per occasion</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Largest drinks on one occasion</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Times with 6+ drinks</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Alcohol 7-day frequency</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Homebrew consumption</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Drinking level category</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Total MET minutes: 'met_total'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Vigorous work activity</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Moderate work activity</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Walk/bicycle transport</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Vigorous recreational activity</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Moderate recreational activity</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Sedentary behaviour</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Fruit days/week: 'd1'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Fruit servings/day: 'd2'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Vegetable days/week: 'd3'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Vegetable servings/day: 'd4'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Salt added at table</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Salt added in cooking</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Processed food high in salt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Perceived salt intake</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Importance of lowering salt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Knowledge of salt effects</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Limit processed food for salt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Check salt labels</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Buy low-salt alternatives</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Use spices instead of salt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Avoid food outside home</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Other salt control action</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Type of cooking oil/fat</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Meals outside home per week</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Vigorous work days/week</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Vigorous work hours</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Vigorous work minutes</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Moderate work days/week</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Moderate work hours</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Moderate work minutes</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Transport days/week</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Transport hours</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Transport minutes</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Vigorous recreation days/week</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Vigorous recreation hours</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Vigorous recreation minutes</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Moderate recreation days/week</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Moderate recreation hours</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Moderate recreation minutes</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Sedentary hours</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Sedentary minutes</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: BP ever measured</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Ever diagnosed raised BP</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: BP diagnosed past 12m</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Traditional healer for BP</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Herbal remedy for BP</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Blood sugar ever measured</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Ever diagnosed diabetes</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: DM diagnosed past 12m</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Currently on insulin</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Traditional healer for DM</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Herbal remedy for DM</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Cholesterol ever measured</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Ever diagnosed raised cholesterol</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Chol diagnosed past 12m</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Traditional healer for chol</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Herbal remedy for chol</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: CVD history (heart attack/stroke)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Currently taking aspirin</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Currently taking statins</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Advised: quit tobacco</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Advised: reduce salt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Advised: eat fruit/veg</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Advised: reduce fat</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Advised: more PA</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Advised: healthy weight</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Cervical cancer screening</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Education years</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Highest education level: 'c5'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Ethnicity/Caste: 'c6'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Marital status</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Employment status</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Household income</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Height (cm): 'm1'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Weight (kg): 'm2'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Waist circumference (cm): 'm3'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Hip circumference (cm)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ SBP reading 1: 'b1'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ SBP reading 2: 'b3'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ SBP reading 3: 'b5'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ DBP reading 1: 'b2'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ DBP reading 2: 'b4'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ DBP reading 3: 'b6'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ BP medications: 'b7'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Pregnancy status</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Heart rate reading 1</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Heart rate reading 2</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Heart rate reading 3</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Mean heart rate</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Fasting blood glucose: 'b5'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Random blood glucose</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Fasting status: 'b1'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Diabetes medications: 'b6'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Total cholesterol: 'c6'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: HDL cholesterol</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ Could not auto-detect column for: Triglycerides</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✓ Cholesterol medications: 'c10'</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   → 29/147 columns detected automatically</span>
+<span class="r-in"><span>  <span class="va">clean</span> <span class="op">&lt;-</span> <span class="fu"><a href="clean_steps_data.html">clean_steps_data</a></span><span class="op">(</span><span class="va">test_data</span>, <span class="va">cols</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ No Step 2 weight found - copying Step 1 weight</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ⚠ No Step 3 weight found - copying Step 1 weight</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     ✓ GPAQ special codes (77/88/99) cleaned, values capped at valid ranges</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     ✓ GPAQ screening questions used to set non-active domains to 0</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     ✓ Diet special codes (77/88) cleaned; zero-days → 0 servings</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> ✓ Cleaning complete. Final dataset: 500 rows x 64 columns</span>
+<span class="r-in"><span>  <span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="setup_survey_design.html">setup_survey_design</a></span><span class="op">(</span><span class="va">clean</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Setting up survey designs (per WHO STEPS Step)...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Design: Stratified cluster sampling with weights</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   → Unweighted n = 500</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   → Weighted  N (Step 1) = 753</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Survey design created</span>
 <span class="r-in"><span>  <span class="va">anthropometry_results</span> <span class="op">&lt;-</span> <span class="fu">compute_anthropometry_indicators</span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Computing anthropometry indicators...</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
   </div>

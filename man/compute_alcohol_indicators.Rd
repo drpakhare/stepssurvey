@@ -28,8 +28,11 @@ Computes proportions of current alcohol use and heavy episodic drinking,
 stratified by sex and age group where available.
 }
 \examples{
-\dontrun{
-  design <- setup_survey_design(data = survey_data)
+\donttest{
+  test_data <- generate_test_data(n = 500, seed = 42)
+  cols <- detect_steps_columns(test_data)
+  clean <- clean_steps_data(test_data, cols)
+  design <- setup_survey_design(clean)
   alcohol_results <- compute_alcohol_indicators(design)
 }
 }

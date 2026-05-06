@@ -18,7 +18,7 @@ fmt_est(est, lower, upper, digits = 1, pct = TRUE)
 \item{pct}{Logical; add percent sign? (default TRUE).}
 }
 \value{
-Formatted string like "42.1\% (39.2-45.0)".
+Formatted string like "42.1\% (39.2–45.0)".
 }
 \description{
 Format estimate with confidence interval

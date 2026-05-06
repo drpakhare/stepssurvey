@@ -95,7 +95,7 @@
                         <h4 data-toc-skip class="author">Abhijit
 Pakhare</h4>
             
-            <h4 data-toc-skip class="date">2026-05-02</h4>
+            <h4 data-toc-skip class="date">2026-05-06</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/drpakhare/stepssurvey/blob/HEAD/vignettes/validation.Rmd" class="external-link"><code>vignettes/validation.Rmd</code></a></small>
       <div class="hidden name"><code>validation.Rmd</code></div>
@@ -1748,8 +1748,8 @@ licensed STEPS microdata files placed in a
 package:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/drpakhare/stepssurvey" class="external-link">stepssurvey</a></span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">setwd</a></span><span class="op">(</span><span class="st">"path/to/stepssurvey"</span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"inst/validation/validate_all.R"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">## Run from the package source directory</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"validation"</span>, <span class="st">"validate_all.R"</span>, package <span class="op">=</span> <span class="st">"stepssurvey"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Per-country results are saved as CSV files in
 <code>inst/validation/</code>.</p>
 </div>

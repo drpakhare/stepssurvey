@@ -4,12 +4,12 @@
 \alias{save_steps_plots}
 \title{Save STEPS plots to PNG files}
 \usage{
-save_steps_plots(plots, output_dir = "outputs/figures")
+save_steps_plots(plots, output_dir = tempdir())
 }
 \arguments{
 \item{plots}{A named list of ggplot2 objects (from \code{\link[=build_steps_plots]{build_steps_plots()}}).}
 
-\item{output_dir}{Output directory path (default "outputs/figures").}
+\item{output_dir}{Output directory path (default \code{tempdir()}).}
 }
 \value{
 NULL (invisibly). Prints messages about saved files.

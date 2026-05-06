@@ -4,13 +4,13 @@
 \alias{render_fact_sheet}
 \title{Render STEPS Fact Sheet report}
 \usage{
-render_fact_sheet(config, output_dir = "outputs", format = c("html", "word"))
+render_fact_sheet(config, output_dir = tempdir(), format = c("html", "word"))
 }
 \arguments{
 \item{config}{A list from \code{\link[=steps_config]{steps_config()}} with survey metadata and paths.
 Expected to have \code{country_name}, \code{survey_year}, \code{age_min}, \code{age_max}.}
 
-\item{output_dir}{Directory for output reports (default "outputs").}
+\item{output_dir}{Directory for output reports (default \code{tempdir()}).}
 
 \item{format}{Output format: \code{"html"} for self-contained HTML (default)
 or \code{"word"} for Word (.docx).}

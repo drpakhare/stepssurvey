@@ -39,12 +39,14 @@ Error bars represent 95\% confidence intervals.
 Prevalence values are displayed on bars/points with light background text.
 }
 \examples{
-\dontrun{
+\donttest{
+  test_data <- generate_test_data(n = 500, seed = 42)
+  cols <- detect_steps_columns(test_data)
+  clean <- clean_steps_data(test_data, cols)
+  design <- setup_survey_design(clean)
   all_ind <- compute_all_indicators(design)
-  indicators <- all_ind$results
-  key_indicators <- all_ind$key_indicators
-  plots <- build_steps_plots(indicators, key_indicators, "Senegal", 2023)
-  names(plots)  # View available plots
+  plots <- build_steps_plots(all_ind$results, all_ind$key_indicators, "Test", 2023)
+  names(plots)
 }
 
 }
