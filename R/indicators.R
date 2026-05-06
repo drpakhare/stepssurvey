@@ -20,11 +20,13 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#'   designs <- setup_survey_design(data = survey_data)
-#'   all_indicators <- compute_all_indicators(designs)
-#'   all_indicators$results
-#'   all_indicators$key_indicators
+#' \donttest{
+#'   test_data <- generate_test_data(n = 500, seed = 42)
+#'   cols <- detect_steps_columns(test_data)
+#'   clean <- clean_steps_data(test_data, cols)
+#'   design <- setup_survey_design(clean)
+#'   all_indicators <- compute_all_indicators(design)
+#'   names(all_indicators$results)
 #' }
 compute_all_indicators <- function(design) {
   # Support both old (single design) and new (steps_designs list) format

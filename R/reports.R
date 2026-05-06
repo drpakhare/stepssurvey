@@ -71,7 +71,7 @@ steps_config <- function(data_path, country_name = "Country Name", survey_year =
 #'
 #' @param config A list from [steps_config()] with survey metadata and paths.
 #'   Expected to have `country_name`, `survey_year`, `age_min`, `age_max`.
-#' @param output_dir Directory for output reports (default "outputs").
+#' @param output_dir Directory for output reports (default \code{tempdir()}).
 #' @param format Output format: `"html"` for self-contained HTML (default)
 #'   or `"word"` for Word (.docx).
 #'
@@ -84,7 +84,7 @@ steps_config <- function(data_path, country_name = "Country Name", survey_year =
 #' Requires rmarkdown, flextable, ggplot2, glue, patchwork packages.
 #'
 #' @export
-render_fact_sheet <- function(config, output_dir = "outputs",
+render_fact_sheet <- function(config, output_dir = tempdir(),
                               format = c("html", "word")) {
   format <- match.arg(format)
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
@@ -123,7 +123,7 @@ render_fact_sheet <- function(config, output_dir = "outputs",
 #'
 #' @param config A list from [steps_config()] with survey metadata.
 #'   Expected to have `country_name`, `survey_year`, `age_min`, `age_max`.
-#' @param output_dir Directory for output reports (default "outputs").
+#' @param output_dir Directory for output reports (default \code{tempdir()}).
 #'
 #' @return Path to generated Word document (invisibly).
 #'   Prints message with output location.
@@ -137,7 +137,7 @@ render_fact_sheet <- function(config, output_dir = "outputs",
 #' Requires pre-computed tables and plots in data/processed/.
 #'
 #' @export
-render_data_book <- function(config, output_dir = "outputs") {
+render_data_book <- function(config, output_dir = tempdir()) {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
   template_path <- system.file("rmd", "data_book.Rmd", package = "stepssurvey")
@@ -176,7 +176,7 @@ render_data_book <- function(config, output_dir = "outputs") {
 #'
 #' @param config A list from [steps_config()] with survey metadata.
 #'   Expected to have `country_name`, `survey_year`, `age_min`, `age_max`.
-#' @param output_dir Directory for output reports (default "outputs").
+#' @param output_dir Directory for output reports (default \code{tempdir()}).
 #'
 #' @return Path to generated Word document (invisibly).
 #'   Prints message with output location.
@@ -195,7 +195,7 @@ render_data_book <- function(config, output_dir = "outputs") {
 #' Requires pre-computed indicators, tables, and plots in data/processed/.
 #'
 #' @export
-render_country_report <- function(config, output_dir = "outputs") {
+render_country_report <- function(config, output_dir = tempdir()) {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
   template_path <- system.file("rmd", "country_report.Rmd", package = "stepssurvey")

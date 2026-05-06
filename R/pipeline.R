@@ -11,7 +11,7 @@
 #' @param survey_year Survey year (default 2024).
 #' @param age_min Minimum age in years (default 18).
 #' @param age_max Maximum age in years (default 69).
-#' @param output_dir Directory for all outputs (default "outputs").
+#' @param output_dir Directory for all outputs (default \code{tempdir()}).
 #' @param render_reports Logical; render Word documents? (default TRUE).
 #' @param mapping_file Optional path to a filled column mapping template
 #'   (Excel or CSV). If provided, uses [read_column_mapping()] instead of
@@ -54,7 +54,7 @@ run_steps_pipeline <- function(data_path,
                                survey_year = 2024,
                                age_min = 18,
                                age_max = 69,
-                               output_dir = "outputs",
+                               output_dir = tempdir(),
                                render_reports = TRUE,
                                mapping_file = NULL) {
 

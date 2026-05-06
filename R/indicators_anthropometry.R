@@ -27,8 +27,11 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#'   design <- setup_survey_design(data = survey_data)
+#' \donttest{
+#'   test_data <- generate_test_data(n = 500, seed = 42)
+#'   cols <- detect_steps_columns(test_data)
+#'   clean <- clean_steps_data(test_data, cols)
+#'   design <- setup_survey_design(clean)
 #'   anthropometry_results <- compute_anthropometry_indicators(design)
 #' }
 compute_anthropometry_indicators <- function(design) {

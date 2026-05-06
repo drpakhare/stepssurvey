@@ -573,8 +573,8 @@ the package:
 
 ```r
 library(stepssurvey)
-setwd("path/to/stepssurvey")
-source("inst/validation/validate_all.R")
+## Run from the package source directory
+source(system.file("validation", "validate_all.R", package = "stepssurvey"))
 ```
 
 Per-country results are saved as CSV files in `inst/validation/`.

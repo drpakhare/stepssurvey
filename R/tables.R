@@ -19,10 +19,14 @@
 #' Column header styling uses WHO STEPS branding (dark blue background).
 #'
 #' @examples
-#' \dontrun{
-#'   indicators <- compute_steps_indicators(design, config)
-#'   tables <- build_steps_tables(indicators)
-#'   names(tables)  # View available tables
+#' \donttest{
+#'   test_data <- generate_test_data(n = 500, seed = 42)
+#'   cols <- detect_steps_columns(test_data)
+#'   clean <- clean_steps_data(test_data, cols)
+#'   design <- setup_survey_design(clean)
+#'   all_ind <- compute_all_indicators(design)
+#'   tables <- build_steps_tables(all_ind$results)
+#'   names(tables)
 #' }
 #'
 #' @export
@@ -91,7 +95,7 @@ build_steps_tables <- function(indicators) {
 #' @keywords internal
 fmt_est <- function(est, lower, upper, digits = 1, pct = TRUE) {
   suf <- if (pct) "%" else ""
-  glue::glue("{round(est, digits)}{suf} ({round(lower, digits)}–{round(upper, digits)})")
+  glue::glue("{round(est, digits)}{suf} ({round(lower, digits)}\u2013{round(upper, digits)})")
 }
 
 #' Build a single STEPS table

@@ -282,7 +282,7 @@ combined <- dplyr::left_join(step1, step2, by = "pid") |>
   dplyr::left_join(step3, by = "pid")
 
 # Save combined file
-haven::write_sav(combined, "steps_combined.sav")
+haven::write_sav(combined, file.path(tempdir(), "steps_combined.sav"))
 
 # Or import directly
 raw <- combined |> janitor::clean_names()

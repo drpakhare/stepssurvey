@@ -88,7 +88,7 @@ build_all_tables <- function(results) {
   mapply(function(e, l, u) {
     if (is.na(e)) return("-")
     paste0(round(e, digits), suffix,
-           " (", round(l, digits), "–", round(u, digits), ")")
+           " (", round(l, digits), "\u2013", round(u, digits), ")")
   }, est, lower, upper, USE.NAMES = FALSE)
 }
 

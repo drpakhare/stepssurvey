@@ -37,15 +37,10 @@
 #'   - Training analysts on the analysis system
 #'
 #' @examples
-#' \dontrun{
-#'   # Generate default test data (3000 rows)
-#'   test_data <- generate_test_data()
-#'
+#' \donttest{
 #'   # Generate smaller dataset for quick testing
-#'   quick_test <- generate_test_data(n = 500, seed = 123)
-#'
-#'   # Use in pipeline
-#'   result <- run_steps_pipeline(test_data)  # Pass data frame directly
+#'   test_data <- generate_test_data(n = 500, seed = 123)
+#'   head(test_data)
 #' }
 #'
 #' @export

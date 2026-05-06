@@ -25,12 +25,14 @@
 #' Prevalence values are displayed on bars/points with light background text.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
+#'   test_data <- generate_test_data(n = 500, seed = 42)
+#'   cols <- detect_steps_columns(test_data)
+#'   clean <- clean_steps_data(test_data, cols)
+#'   design <- setup_survey_design(clean)
 #'   all_ind <- compute_all_indicators(design)
-#'   indicators <- all_ind$results
-#'   key_indicators <- all_ind$key_indicators
-#'   plots <- build_steps_plots(indicators, key_indicators, "Senegal", 2023)
-#'   names(plots)  # View available plots
+#'   plots <- build_steps_plots(all_ind$results, all_ind$key_indicators, "Test", 2023)
+#'   names(plots)
 #' }
 #'
 #' @export
@@ -344,7 +346,7 @@ build_radar_plot <- function(key_indicators, country_name, survey_year) {
 #' Exports all plots in a list to PNG files in the specified directory.
 #'
 #' @param plots A named list of ggplot2 objects (from [build_steps_plots()]).
-#' @param output_dir Output directory path (default "outputs/figures").
+#' @param output_dir Output directory path (default \code{tempdir()}).
 #'
 #' @return NULL (invisibly). Prints messages about saved files.
 #'
@@ -358,7 +360,7 @@ build_radar_plot <- function(key_indicators, country_name, survey_year) {
 #' All saved at 150 dpi with white background.
 #'
 #' @export
-save_steps_plots <- function(plots, output_dir = "outputs/figures") {
+save_steps_plots <- function(plots, output_dir = tempdir()) {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
   save_plot <- function(plot, name, width = 10, height = 6) {

@@ -236,7 +236,7 @@ names and the standard STEPS variables.
 # Copy the template to your working directory
 file.copy(
   system.file("templates", "column_mapping_template.xlsx", package = "stepssurvey"),
-  "my_mapping.xlsx"
+  file.path(tempdir(), "my_mapping.xlsx")
 )
 ```
 
@@ -517,7 +517,7 @@ reports and quick reference.
 tables$raised_bp
 
 # Export to Word
-flextable::save_as_docx(tables$raised_bp, path = "bp_table.docx")
+flextable::save_as_docx(tables$raised_bp, path = file.path(tempdir(), "bp_table.docx"))
 ```
 
 ### Detailed WHO 3-panel tables (Men | Women | Both Sexes)
