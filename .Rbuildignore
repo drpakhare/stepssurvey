@@ -15,3 +15,7 @@
 ^renv\.lock$
 ^rsconnect$
 ^cran-comments\.md$
+^CRAN-SUBMISSION$
+^\.RData$
+^\.Rhistory$
+^\.DS_Store$

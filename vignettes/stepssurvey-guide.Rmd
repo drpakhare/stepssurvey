@@ -631,7 +631,7 @@ build_radar_plot(result$key_indicators, "Exampleland", 2024)
 ### Saving plots
 
 ```{r save-plots, eval = FALSE}
-save_steps_plots(plots, output_dir = "outputs/figures")
+save_steps_plots(plots, output_dir = file.path(tempdir(), "figures"))
 # Creates:
 #   outputs/figures/01_overview_indicators.png
 #   outputs/figures/02_by_sex_dashboard.png

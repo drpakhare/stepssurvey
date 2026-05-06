@@ -21,7 +21,7 @@ License: MIT + file LICENSE
 URL: https://github.com/drpakhare/stepssurvey
 BugReports: https://github.com/drpakhare/stepssurvey/issues
 Encoding: UTF-8
-LazyData: true
+LazyData: false
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Depends:

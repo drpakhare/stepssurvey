@@ -112,7 +112,12 @@ setup_survey_design <- function(data) {
   message("  Setting up survey designs (per WHO STEPS Step)...")
 
   # Match WHO STEPS official scripts: handle lone PSUs gracefully
-
+  old_psu <- getOption("survey.lonely.psu")
+  old_domain <- getOption("survey.adjust.domain.lonely")
+  on.exit({
+    options(survey.lonely.psu = old_psu)
+    options(survey.adjust.domain.lonely = old_domain)
+  }, add = TRUE)
   options(survey.lonely.psu = "adjust")
   options(survey.adjust.domain.lonely = TRUE)
 
